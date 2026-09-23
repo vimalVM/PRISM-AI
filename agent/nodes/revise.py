@@ -71,6 +71,7 @@ def revise_node(state: AgentState) -> Dict[str, Any]:
     return {
         "retry_count": current_retry,
         "plan": [],
+        "tool_results": [],
         "user_request": f"{state.get('user_request', '')}\n\n{revision_feedback}",
         "errors": [],  # Clear transient errors for new attempt
     }

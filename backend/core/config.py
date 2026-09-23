@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     MODEL_CALL_TIMEOUT_S: int = 180
     TOOL_TIMEOUT_S: int = 120
     SANDBOX_TIMEOUT_S: int = 30
+    SANDBOX_IMAGE_TAG: str = "sovereign-sandbox:local"
+    SANDBOX_MEM_LIMIT: str = "512m"
+    SANDBOX_CPUS: float = 1.0
+    SANDBOX_OUTPUT_LIMIT_KB: int = 64
 
     # Authentication & Session Security
     SESSION_TTL_MIN: int = 60

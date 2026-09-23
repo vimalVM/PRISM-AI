@@ -56,6 +56,28 @@ def validate_node(state: AgentState) -> Dict[str, Any]:
             )
         )
 
+    # Check 3: Sandbox code execution outcome (02_DESIGN_DOC.md §10.2: Sandbox exit code 0)
+    for r in tool_results:
+        if r.tool == "run_code" and r.output:
+            exit_code = r.output.get("exit_code", 0)
+            status_val = r.output.get("status", "passed")
+            if exit_code != 0 or status_val in {"failed", "timeout", "error"}:
+                validation_results.append(
+                    ValidationResult(
+                        rule="sandbox_tests_passed",
+                        passed=False,
+                        detail=f"Sandbox execution failed (exit code {exit_code}, status {status_val})",
+                    )
+                )
+            else:
+                validation_results.append(
+                    ValidationResult(
+                        rule="sandbox_tests_passed",
+                        passed=True,
+                        detail="Sandbox test suite passed (exit code 0).",
+                    )
+                )
+
     all_passed = all(vr.passed for vr in validation_results)
     status_str = "ok" if all_passed else "fail"
 
