@@ -5,85 +5,75 @@ import {
   Bell, 
   Settings, 
   Sun, 
-  Moon, 
-  Cpu, 
-  ShieldCheck, 
-  Lock, 
-  Zap 
+  Moon 
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export const Header: React.FC = () => {
-  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 flex items-center justify-between">
+    <header className="fixed top-0 left-64 right-0 h-16 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 z-40 px-6 flex items-center justify-between">
       {/* Left: Active Workspace Breadcrumb & Hardware Security Badges */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-surface-container border border-outline-variant/40 hover:border-outline transition-colors cursor-pointer group">
-          <span className="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_6px_#a8ffd2]" />
-          <span className="font-mono text-xs font-semibold text-on-surface">CDU-02 Inspection Analysis</span>
-          <ChevronDown className="w-4 h-4 text-on-surface-variant group-hover:text-on-surface transition-colors" />
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 transition-colors cursor-pointer group">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+            CDU-02 Inspection Analysis
+          </span>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
         </div>
 
-        <div className="h-4 w-px bg-outline-variant/30 hidden lg:block" />
+        <span className="text-slate-300 dark:text-slate-700 font-mono text-sm hidden sm:inline">/</span>
 
-        <div className="hidden xl:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-low border border-outline-variant/30 text-tertiary font-mono text-[10px] tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
-            AIR-GAPPED
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-low border border-outline-variant/30 text-primary-container font-mono text-[10px] tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
-            LOCAL RTX 3050
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-low border border-outline-variant/30 text-tertiary font-mono text-[10px] tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
-            ZERO EGRESS
-          </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 font-mono text-[11px] font-semibold">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Air-Gapped · Local RTX 3050</span>
         </div>
       </div>
 
-      {/* Right: Hardware VRAM Meter, Theme Toggle & Controls */}
-      <div className="flex items-center gap-3">
-        {/* VRAM Allocation Gauge */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface font-mono text-xs">
-          <Cpu className="w-4 h-4 text-primary-container" />
-          <span className="text-on-surface-variant">VRAM</span>
-          <span className="text-outline">|</span>
-          <span className="text-on-surface font-mono">3.8 / 6.0 GB</span>
-          <div className="w-16 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-            <div className="bg-primary-container h-full w-[63%]" />
-          </div>
-        </div>
-
+      {/* Right: Search, Notifications, Theme Toggle, Settings, Avatar */}
+      <div className="flex items-center gap-2.5">
         {/* Quick Search Shortcut */}
         <button
-          onClick={() => {}}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors"
+          type="button"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-800 transition-colors text-xs font-mono"
         >
-          <Search className="w-4 h-4" />
-          <span className="font-mono text-xs hidden sm:inline text-on-surface-variant">⌘K</span>
+          <Search className="w-3.5 h-3.5" />
+          <span className="text-[11px]">⌘K</span>
+        </button>
+
+        {/* Notifications */}
+        <button
+          type="button"
+          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-800 transition-colors"
+          title="Notifications"
+        >
+          <Bell className="w-4 h-4" />
         </button>
 
         {/* Theme Toggle Button */}
         <button
+          type="button"
           onClick={toggleTheme}
-          title="Toggle Dark / Light Theme"
-          className="p-2 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:text-on-surface transition-colors"
+          title="Toggle Light / Dark Theme"
+          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
-          {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-600" />}
+          {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
 
-        {/* System Settings Link */}
+        {/* Settings */}
         <a
           href="/models"
-          className="p-2 rounded bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:text-on-surface transition-colors"
+          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-800 transition-colors"
         >
           <Settings className="w-4 h-4" />
         </a>
+
+        {/* User avatar */}
+        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 ml-1 border border-slate-300 dark:border-slate-600">
+          KM
+        </div>
       </div>
     </header>
   );

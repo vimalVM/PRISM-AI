@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
@@ -14,13 +14,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('prism_theme');
-      if (saved === 'light' || saved === 'dark') {
+      if (saved === 'dark' || saved === 'light') {
         return saved;
       }
     } catch {
-      // LocalStorage might be disabled or restricted
+      // Ignored
     }
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const setTheme = (newTheme: Theme) => {

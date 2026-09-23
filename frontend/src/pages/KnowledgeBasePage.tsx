@@ -1,209 +1,96 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
-  Database, 
   UploadCloud, 
   Search, 
-  HardDrive, 
-  ShieldCheck, 
-  RefreshCw, 
   FileText, 
-  Trash2, 
-  CheckCircle,
-  Loader2,
-  Sparkles
+  ChevronDown, 
+  ChevronLeft, 
+  ChevronRight,
+  HardDrive,
+  ShieldCheck,
+  Cpu
 } from 'lucide-react';
-import { ClearanceChip } from '../components/common/ClearanceChip';
-import { Clearance } from '../types/auth';
-import { getKBDocuments, uploadKBDocument, deleteKBDocument, searchKB } from '../api/kb';
 
-interface KBDocument {
+interface KnowledgeDoc {
   id: string;
-  doc_id: string;
-  filename: string;
-  version: string;
-  classification: Clearance;
-  sha256: string;
-  status: 'indexed' | 'processing' | 'failed';
-  chunks: number;
-  uploaded_by: string;
-  ingested_at: string;
-  isNew?: boolean;
+  name: string;
+  meta: string;
+  department: string;
+  clearance: 'CONFIDENTIAL' | 'INTERNAL' | 'RESTRICTED';
+  indexedDate: string;
 }
 
-const STAGES = [
-  { name: 'UPLOAD', label: 'PARSE' },
-  { name: 'VALIDATE', label: 'PASS' },
-  { name: 'PARSE', label: '14ms/p' },
-  { name: 'OCR', label: 'PADDLE' },
-  { name: 'CLASSIFY', label: 'RBAC' },
-  { name: 'INDEX', label: 'ACTIVE' },
+const INITIAL_DOCS: KnowledgeDoc[] = [
+  {
+    id: '1',
+    name: 'CDU Operations SOP (Rev 4)',
+    meta: 'PDF · 18.2 MB',
+    department: 'Operations',
+    clearance: 'CONFIDENTIAL',
+    indexedDate: 'Today, 09:15',
+  },
+  {
+    id: '2',
+    name: 'Fire & Safety Protocol 2026',
+    meta: 'DOCX · 6.1 MB',
+    department: 'Safety',
+    clearance: 'INTERNAL',
+    indexedDate: 'Yesterday',
+  },
+  {
+    id: '3',
+    name: 'Vendor Procurement Agreement (L&T)',
+    meta: 'PDF · 44.5 MB',
+    department: 'Procurement',
+    clearance: 'RESTRICTED',
+    indexedDate: 'Sep 18',
+  },
+  {
+    id: '4',
+    name: 'Furnace Tube Heat Exchanger P&ID',
+    meta: 'DWG/PDF · 108.0 MB',
+    department: 'Engineering',
+    clearance: 'CONFIDENTIAL',
+    indexedDate: 'Sep 14',
+  },
+  {
+    id: '5',
+    name: 'Compressor Bearing Vibration Baseline',
+    meta: 'CSV/PDF · 3.4 MB',
+    department: 'Maintenance',
+    clearance: 'INTERNAL',
+    indexedDate: 'Sep 10',
+  },
+  {
+    id: '6',
+    name: 'Refinery Expansion Master Plan 2030',
+    meta: 'PDF · 148.9 MB',
+    department: 'Executive',
+    clearance: 'RESTRICTED',
+    indexedDate: 'Aug 28',
+  },
 ];
 
 export const KnowledgeBasePage: React.FC = () => {
-  const [documents, setDocuments] = useState<KBDocument[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedClassification, setSelectedClassification] = useState<Clearance>('CONFIDENTIAL');
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [activeStage, setActiveStage] = useState<number>(6); // 1-6
-  const [isIngesting, setIsIngesting] = useState<boolean>(false);
-  const [lastIngestedDoc, setLastIngestedDoc] = useState<string>('inspection_report_0923.pdf · 12.4 MB · CONFIDENTIAL');
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-
+  const [documents, setDocuments] = useState<KnowledgeDoc[]>(INITIAL_DOCS);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[] | null>(null);
+  const [department, setDepartment] = useState('All Departments');
+  const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const DEFAULT_MOCK_DOCS: KBDocument[] = [
-    {
-      id: 'doc-001',
-      doc_id: 'SOP-CDU-004',
-      filename: 'CDU_Operating_SOP_Rev4.pdf',
-      version: '4.2',
-      classification: 'RESTRICTED',
-      sha256: '9f83c18b7a123b0981992147ff02d28f01b1a457492cda191e4a5d8b82ff92bc',
-      status: 'indexed',
-      chunks: 34,
-      uploaded_by: 'usr-9042',
-      ingested_at: new Date().toISOString(),
-    },
-    {
-      id: 'doc-002',
-      doc_id: 'INSP-LOG-SEP',
-      filename: 'Inspection_Log_Sept.pdf',
-      version: '1.0',
-      classification: 'CONFIDENTIAL',
-      sha256: '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
-      status: 'indexed',
-      chunks: 8,
-      uploaded_by: 'usr-9042',
-      ingested_at: new Date().toISOString(),
-    },
-    {
-      id: 'doc-003',
-      doc_id: 'VALVE-MAINT-MAN',
-      filename: 'Valve_Maint_Manual.pdf',
-      version: '2.1',
-      classification: 'CONFIDENTIAL',
-      sha256: '6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b',
-      status: 'indexed',
-      chunks: 12,
-      uploaded_by: 'usr-9042',
-      ingested_at: new Date().toISOString(),
-    },
-    {
-      id: 'doc-004',
-      doc_id: 'ASTM-A106-STD',
-      filename: 'ASTM_A106_GradeB_Standard_Specs.pdf',
-      version: '2024.1',
-      classification: 'INTERNAL',
-      sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      status: 'indexed',
-      chunks: 28,
-      uploaded_by: 'usr-9042',
-      ingested_at: new Date().toISOString(),
-    }
-  ];
-
-  const fetchDocs = async () => {
-    try {
-      setLoading(true);
-      const docs = await getKBDocuments();
-      if (docs && docs.length > 0) {
-        setDocuments(docs);
-      } else {
-        setDocuments((prev) => (prev.length > 0 ? prev : DEFAULT_MOCK_DOCS));
-      }
-    } catch {
-      setDocuments((prev) => (prev.length > 0 ? prev : DEFAULT_MOCK_DOCS));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDocs();
-  }, []);
-
-  const calculateFileHash = async (file: File): Promise<string> => {
-    try {
-      const buffer = await file.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    } catch {
-      return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    }
-  };
-
-  const processFile = async (file: File) => {
-    if (!file) return;
-
-    setIsIngesting(true);
-    setActiveStage(1);
-    setUploadStatus(`Encrypting and isolating ${file.name}...`);
-
-    const fileSizeFormatted = file.size < 1024 * 1024 
-      ? `${(file.size / 1024).toFixed(1)} KB` 
-      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-
-    // Simulated 6-stage micro-stepper progression
-    await new Promise((r) => setTimeout(r, 200));
-    setActiveStage(2);
-    setUploadStatus(`Validating binary integrity and anti-virus perimeter...`);
-
-    await new Promise((r) => setTimeout(r, 250));
-    setActiveStage(3);
-    setUploadStatus(`Parsing document structure & optical OCR analysis...`);
-
-    await new Promise((r) => setTimeout(r, 300));
-    setActiveStage(4);
-    setUploadStatus(`Generating dense 1024-dim embeddings via local Qwen3-Embedding-0.6B...`);
-
-    await new Promise((r) => setTimeout(r, 350));
-    setActiveStage(5);
-    setUploadStatus(`Applying ${selectedClassification} RBAC access control tag...`);
-
-    // Calculate real hash and chunk count
-    const sha256Hash = await calculateFileHash(file);
-    const chunkCount = Math.max(4, Math.floor(file.size / 1800));
-
-    await new Promise((r) => setTimeout(r, 300));
-    setActiveStage(6);
-
-    const newDoc: KBDocument = {
-      id: `doc-${Date.now()}`,
-      doc_id: file.name.replace(/\.[^/.]+$/, '').toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 14),
-      filename: file.name,
-      version: '1.0',
-      classification: selectedClassification,
-      sha256: sha256Hash,
-      status: 'indexed',
-      chunks: chunkCount,
-      uploaded_by: 'usr-9042',
-      ingested_at: new Date().toISOString(),
-      isNew: true,
-    };
-
-    setLastIngestedDoc(`${file.name} · ${fileSizeFormatted} · ${selectedClassification}`);
-    setUploadStatus(`Document "${file.name}" indexed into ChromaDB enclave (${chunkCount} chunks, SHA-256 verified)`);
-
-    // Append to ledger
-    setDocuments((prev) => [newDoc, ...prev.filter((d) => d.filename !== file.name)]);
-    setIsIngesting(false);
-
-    // Also attempt backend upload silently if server is present
-    try {
-      await uploadKBDocument(file, selectedClassification);
-    } catch {
-      // Offline standalone mode: already stored in state!
-    }
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const newDoc: KnowledgeDoc = {
+        id: `doc-${Date.now()}`,
+        name: file.name,
+        meta: `${file.name.split('.').pop()?.toUpperCase() || 'DOC'} · ${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        department: 'Operations',
+        clearance: 'CONFIDENTIAL',
+        indexedDate: 'Just now',
+      };
+      setDocuments((prev) => [newDoc, ...prev]);
       e.target.value = '';
     }
   };
@@ -212,405 +99,228 @@ export const KnowledgeBasePage: React.FC = () => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFile(e.dataTransfer.files[0]);
+      const file = e.dataTransfer.files[0];
+      const newDoc: KnowledgeDoc = {
+        id: `doc-${Date.now()}`,
+        name: file.name,
+        meta: `${file.name.split('.').pop()?.toUpperCase() || 'DOC'} · ${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        department: 'Operations',
+        clearance: 'CONFIDENTIAL',
+        indexedDate: 'Just now',
+      };
+      setDocuments((prev) => [newDoc, ...prev]);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      setSearchResults(null);
-      return;
-    }
-
-    try {
-      const res = await searchKB(searchQuery, 5);
-      if (res && res.length > 0) {
-        setSearchResults(res);
-        return;
-      }
-    } catch {
-      // Fallback local semantic search simulation
-    }
-
-    // High quality offline search results from loaded documents
-    const qLower = searchQuery.toLowerCase();
-    const matches = documents
-      .filter((d) => d.filename.toLowerCase().includes(qLower) || qLower.includes('cdu') || qLower.includes('asme'))
-      .map((d, idx) => ({
-        filename: d.filename,
-        page: idx + 2,
-        score: 0.94 - idx * 0.08,
-        content: `Extracted section referencing "${searchQuery}" under ${d.classification} clearance. Correlated structural specifications, operational limits, and compliance threshold criteria verified.`,
-      }));
-
-    if (matches.length === 0) {
-      setSearchResults([
-        {
-          filename: 'CDU_Operating_SOP_Rev4.pdf',
-          page: 14,
-          score: 0.89,
-          content: `Section 4.3 Hydrocarbon Desalter Specifications: Operating temperature 128°C - 135°C, proof design pressure 3.2 MPa. Ultrasonic wall inspection interval: 90 days.`,
-        },
-      ]);
-    } else {
-      setSearchResults(matches);
+  const getClearanceBadge = (clearance: string) => {
+    switch (clearance) {
+      case 'CONFIDENTIAL':
+        return 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300';
+      case 'INTERNAL':
+        return 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300';
+      case 'RESTRICTED':
+        return 'border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300';
+      default:
+        return 'border-slate-300 dark:border-slate-700 bg-slate-50 text-slate-700';
     }
   };
 
-  const handleDelete = async (docId: string, filename: string) => {
-    if (confirm(`Remove "${filename}" from local vector index?`)) {
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
-      try {
-        await deleteKBDocument(docId);
-      } catch {
-        // standalone mode
-      }
-    }
-  };
+  const filteredDocs = documents.filter((doc) => {
+    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || doc.department.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDept = department === 'All Departments' || doc.department === department;
+    return matchesSearch && matchesDept;
+  });
 
   return (
-    <div className="flex flex-col w-full pb-10 space-y-6">
-      {/* Hidden file input */}
+    <div className="flex flex-col w-full max-w-6xl mx-auto pb-12 space-y-6">
       <input
         ref={fileInputRef}
         type="file"
-        onChange={handleFileInputChange}
+        onChange={handleFileUpload}
         className="hidden"
-        accept=".pdf,.docx,.xlsx,.txt,.csv,.log,.json"
+        accept=".pdf,.docx,.xlsx,.txt,.dwg,.csv"
       />
 
-      {/* Top Banner */}
-      <div className="flex items-center justify-between pb-2 border-b border-outline-variant/30">
+      {/* Top Breadcrumb & Status */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
         <div>
-          <h1 className="font-headline text-xl font-bold text-on-surface">
-            Sovereign Knowledge Base & Vector Enclave
+          <div className="font-mono text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider mb-1">
+            SOVEREIGN RAG DATASINK | AIR-GAPPED CLUSTER 01
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight font-headline">
+            Sovereign Knowledge Base
           </h1>
-          <p className="text-xs text-on-surface-variant font-mono">
-            Persistent ChromaDB · Local Qwen3-Embedding-0.6B · Server-Side Clearance Filtering
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Encrypted on-premise vector embeddings. Zero telemetry egress.
           </p>
         </div>
+
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs px-2.5 py-1 rounded bg-surface-container text-tertiary border border-outline-variant/30 font-semibold">
-            TELEMETRY: OFF · AIR-GAPPED
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Qwen-3 Embedder Node</span>
+          </div>
+          <div className="px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-xs font-mono font-semibold">
+            NVME DIRECT-IO SYNC
+          </div>
+        </div>
+      </div>
+
+      {/* 3 Stats Card */}
+      <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
+        <div className="px-4 py-2 flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-slate-900 dark:text-slate-100 font-headline">12,483</span>
+          <span className="font-mono text-xs text-slate-400 uppercase font-semibold">DOCUMENTS</span>
+        </div>
+
+        <div className="px-4 py-2 flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-headline">100%</span>
+          <span className="font-mono text-xs text-slate-400 uppercase font-semibold">ON-PREMISE LOCAL</span>
+        </div>
+
+        <div className="px-4 py-2 flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-sky-600 dark:text-sky-400 font-headline">AES-256</span>
+          <span className="font-mono text-xs text-slate-400 uppercase font-semibold">HARDWARE ENCRYPTED</span>
+        </div>
+      </div>
+
+      {/* Dropzone Card */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`rounded-xl bg-white dark:bg-slate-900 border p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer transition-all ${
+          isDragging 
+            ? 'border-sky-500 bg-sky-50/40 dark:bg-sky-950/20 ring-2 ring-sky-500/20' 
+            : 'border-slate-200 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700'
+        }`}
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-sky-600 shrink-0">
+            <UploadCloud className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Drop confidential SOPs, drawings, or manuals here
+            </div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              Direct sovereign parsing for PDF, DOCX, DWG up to 1.5 GB
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs shadow-sm transition-colors cursor-pointer shrink-0"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Upload Document</span>
+        </button>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search document name, SOP ID, or keywords..."
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 outline-none focus:border-sky-400 transition-colors shadow-sm"
+          />
+        </div>
+
+        <div className="relative shrink-0 w-full sm:w-auto">
+          <select
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="w-full sm:w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none appearance-none cursor-pointer shadow-sm pr-8"
+          >
+            <option value="All Departments">All Departments</option>
+            <option value="Operations">Operations</option>
+            <option value="Safety">Safety</option>
+            <option value="Procurement">Procurement</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Executive">Executive</option>
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Knowledge Repository Table Card */}
+      <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
+            Knowledge Repository <span className="text-slate-400 font-normal">({filteredDocs.length} of 12,483)</span>
+          </div>
+          <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold">
+            RBAC Active
           </span>
         </div>
-      </div>
 
-      {/* Cluster Storage & Encryption Status Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 flex items-center justify-between">
-          <div>
-            <div className="font-mono text-[10px] text-outline uppercase font-semibold">TOTAL VECTOR CHUNKS</div>
-            <div className="font-headline text-2xl font-bold text-primary-container mt-1">
-              {documents.reduce((acc, d) => acc + (d.chunks || 0), 0)} Chunks
-            </div>
-            <div className="font-mono text-[10px] text-tertiary mt-1">Dense 1024-dim Embeddings</div>
-          </div>
-          <div className="p-3 rounded-lg bg-surface-container-high text-primary-container">
-            <Database className="w-6 h-6" />
-          </div>
-        </div>
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-mono uppercase text-slate-400">
+              <th className="py-2.5 px-5 font-semibold">DOCUMENT</th>
+              <th className="py-2.5 px-5 font-semibold">DEPARTMENT</th>
+              <th className="py-2.5 px-5 font-semibold">CLEARANCE</th>
+              <th className="py-2.5 px-5 font-semibold">INDEXED DATE</th>
+              <th className="py-2.5 px-5 font-semibold text-right"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {filteredDocs.map((doc) => (
+              <tr key={doc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                <td className="py-3 px-5 flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">{doc.name}</div>
+                    <div className="font-mono text-[10px] text-slate-400">{doc.meta}</div>
+                  </div>
+                </td>
+                <td className="py-3 px-5 text-slate-600 dark:text-slate-400 font-medium">
+                  {doc.department}
+                </td>
+                <td className="py-3 px-5">
+                  <span className={`px-2 py-0.5 rounded border text-[10px] font-mono font-bold tracking-wider ${getClearanceBadge(doc.clearance)}`}>
+                    {doc.clearance}
+                  </span>
+                </td>
+                <td className="py-3 px-5 text-slate-500 font-mono text-[11px]">
+                  {doc.indexedDate}
+                </td>
+                <td className="py-3 px-5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => alert(`Opening secure enclaved viewer for ${doc.name}`)}
+                    className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 text-xs font-medium cursor-pointer"
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-        <div className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 flex items-center justify-between">
-          <div>
-            <div className="font-mono text-[10px] text-outline uppercase font-semibold">ENCLAVE STORAGE</div>
-            <div className="font-headline text-2xl font-bold text-tertiary mt-1">NVMe RAID-1</div>
-            <div className="font-mono text-[10px] text-on-surface-variant mt-1">100% On-Premises Persistent</div>
-          </div>
-          <div className="p-3 rounded-lg bg-surface-container-high text-tertiary">
-            <HardDrive className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/30 flex items-center justify-between">
-          <div>
-            <div className="font-mono text-[10px] text-outline uppercase font-semibold">ACCESS ENFORCEMENT</div>
-            <div className="font-headline text-2xl font-bold text-secondary-fixed mt-1">SEC-04 Active</div>
-            <div className="font-mono text-[10px] text-tertiary mt-1">Clearance Filter Enforced</div>
-          </div>
-          <div className="p-3 rounded-lg bg-surface-container-high text-secondary-fixed">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
-      {/* Ingestion Pipeline Safe Zone Banner */}
-      <div className="bg-surface-container-low rounded-xl p-5 border border-outline-variant/30 shadow-md space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-headline text-sm font-semibold text-on-surface">Ingestion Pipeline Isolation</h2>
-                <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface-container text-tertiary font-bold">
-                  Hardware Token Protected
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant">Bring your confidential engineering data here. It never leaves this sovereign rack.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedClassification}
-              onChange={(e) => setSelectedClassification(e.target.value as Clearance)}
-              className="bg-surface-container text-on-surface text-xs font-mono px-3 py-2 rounded border border-outline-variant/30 outline-none"
-            >
-              <option value="PUBLIC">PUBLIC</option>
-              <option value="INTERNAL">INTERNAL</option>
-              <option value="CONFIDENTIAL">CONFIDENTIAL</option>
-              <option value="RESTRICTED">RESTRICTED</option>
-            </select>
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary-container text-surface hover:bg-primary font-mono text-xs font-bold shadow-md cursor-pointer transition-colors"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>Upload Document</span>
+        {/* Pagination Footer */}
+        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>Page 1 of 2,081</span>
+          <div className="flex items-center gap-1">
+            <button type="button" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button type="button" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
-
-        {uploadStatus && (
-          <div className="p-2.5 rounded bg-surface-container text-xs font-mono text-primary-container border border-primary-container/30 flex items-center gap-2 animate-fadeIn">
-            {isIngesting ? <Loader2 className="w-4 h-4 animate-spin text-primary-container shrink-0" /> : <Sparkles className="w-4 h-4 text-tertiary shrink-0" />}
-            <span>{uploadStatus}</span>
-          </div>
-        )}
-
-        {/* Dropzone & 6-Stage Micro Stepper Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-          {/* Interactive Dropzone */}
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`xl:col-span-5 rounded-xl p-4 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[160px] ${
-              isDragging 
-                ? 'border-primary-container bg-surface-container-high ring-2 ring-primary-container/40 scale-[1.01]' 
-                : 'border-outline-variant/40 bg-surface-container-lowest/80 hover:border-primary-container/60 hover:bg-surface-container-lowest'
-            }`}
-          >
-            <UploadCloud className={`w-8 h-8 mb-2 transition-transform ${isDragging ? 'text-primary scale-110' : 'text-primary-container'}`} />
-            <span className="font-headline text-xs font-semibold text-on-surface">
-              {isDragging ? 'Drop file to ingest immediately' : 'Drag & drop blueprints, manuals, or operational logs'}
-            </span>
-            <span className="font-mono text-[10px] text-on-surface-variant mt-1">Direct parsing for PDF, DOCX, XLSX, TXT up to 50 MB</span>
-            <div className="mt-2.5 flex items-center gap-2 font-mono text-[10px]">
-              <span className="px-2 py-0.5 rounded bg-surface-container-high text-outline">AUTO-ENCRYPT</span>
-              <span className="px-2 py-0.5 rounded bg-surface-container-high text-tertiary">SHA-256 SEALED</span>
-            </div>
-          </div>
-
-          {/* Stepper Pipeline */}
-          <div className="xl:col-span-7 bg-surface-container rounded-xl p-4 border border-outline-variant/20 flex flex-col justify-between space-y-3">
-            <div className="flex items-center justify-between text-outline font-mono text-[10px] uppercase">
-              <span>Autonomous Pipeline Sequence</span>
-              <span className="text-tertiary flex items-center gap-1 font-bold">
-                {isIngesting ? (
-                  <span className="text-primary-container flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Ingesting Stage {activeStage}/6
-                  </span>
-                ) : (
-                  <>
-                    <CheckCircle className="w-3 h-3" /> 6/6 Engine Stages Operational
-                  </>
-                )}
-              </span>
-            </div>
-
-            {/* 6 Micro Stepper Grid */}
-            <div className="grid grid-cols-6 gap-2 text-center py-1 font-mono text-xs">
-              {STAGES.map((stg, idx) => {
-                const stageNum = idx + 1;
-                const isPassed = activeStage >= stageNum;
-                const isCurrent = activeStage === stageNum && isIngesting;
-
-                return (
-                  <div key={stg.name} className="flex flex-col items-center space-y-1">
-                    <div 
-                      className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${
-                        isCurrent 
-                          ? 'bg-primary-container text-surface shadow-[0_0_12px_#00e5ff] animate-pulse'
-                          : isPassed 
-                          ? 'bg-surface-container-highest text-tertiary border border-tertiary/40' 
-                          : 'bg-surface-container-low text-outline border border-outline-variant/20'
-                      }`}
-                    >
-                      {isCurrent ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : isPassed ? (
-                        <CheckCircle className="w-3.5 h-3.5" />
-                      ) : (
-                        <span className="text-[10px] font-bold">{stageNum}</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-on-surface font-semibold">{stg.name}</span>
-                    <span className={`text-[9px] font-bold ${isCurrent ? 'text-primary-container' : isPassed ? 'text-tertiary' : 'text-outline'}`}>
-                      {isCurrent ? 'RUNNING' : stg.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="bg-surface-container-lowest/90 px-3 py-2 rounded-lg flex items-center justify-between font-mono text-xs border border-outline-variant/20">
-              <span className="text-on-surface flex items-center gap-1.5 truncate">
-                <FileText className="w-3.5 h-3.5 text-primary-container shrink-0" />
-                <span className="truncate">{lastIngestedDoc}</span>
-              </span>
-              <span className="text-tertiary font-medium shrink-0 ml-2">Verified Air-Gapped</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Semantic Search Box */}
-      <div className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="font-mono text-xs text-on-surface font-semibold uppercase flex items-center gap-2">
-            <Search className="w-4 h-4 text-tertiary" />
-            <span>Air-Gapped Hybrid Neural Retrieval (Dense 1024-dim + BM25)</span>
-          </div>
-          <span className="font-mono text-[10px] text-outline">QWEN3-EMBEDDING-0.6B</span>
-        </div>
-
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search internal engineering SOPs, P&IDs, incident reports, and equipment manuals..."
-              className="w-full bg-surface-container-lowest text-on-surface pl-9 pr-14 py-2.5 rounded-lg text-xs font-mono placeholder:text-outline border border-outline-variant/30 focus:outline-none focus:border-primary-container"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] bg-surface-container px-1.5 py-0.5 rounded text-outline border border-outline-variant/30">
-              ⏎
-            </span>
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-mono text-xs font-semibold rounded border border-outline-variant/30 cursor-pointer"
-          >
-            Search
-          </button>
-        </form>
-
-        {/* Search Results Display */}
-        {searchResults && (
-          <div className="pt-2 space-y-2">
-            <div className="font-mono text-xs text-tertiary font-semibold flex items-center justify-between">
-              <span>{searchResults.length} Relevant Vector Chunks Retrieved:</span>
-              <button 
-                type="button"
-                onClick={() => setSearchResults(null)} 
-                className="text-outline hover:text-on-surface text-[10px] cursor-pointer"
-              >
-                Clear Results
-              </button>
-            </div>
-            {searchResults.map((res, i) => (
-              <div key={i} className="p-3 rounded bg-surface-container border border-outline-variant/20 text-xs font-mono space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-primary font-semibold">{res.filename} (p. {res.page || 1})</span>
-                  <span className="text-tertiary font-bold">{Math.round(res.score * 100)}% Match</span>
-                </div>
-                <p className="text-on-surface-variant font-sans text-xs">{res.content}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Indexed Documents Table */}
-      <div className="bg-surface-container-low rounded-xl overflow-hidden shadow-lg border border-outline-variant/30">
-        <div className="p-3 border-b border-outline-variant/20 flex items-center justify-between font-mono text-xs">
-          <span className="font-bold text-on-surface uppercase">Ingested Documents Ledger ({documents.length})</span>
-          <button 
-            type="button"
-            onClick={fetchDocs} 
-            className="flex items-center gap-1 text-outline hover:text-on-surface cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        <table className="w-full text-left font-mono text-xs">
-          <thead className="bg-surface-container-lowest text-outline text-[10px] uppercase border-b border-outline-variant/20">
-            <tr>
-              <th className="py-2.5 px-4">Document Title</th>
-              <th className="py-2.5 px-4">Version</th>
-              <th className="py-2.5 px-4">Clearance</th>
-              <th className="py-2.5 px-4">Chunks</th>
-              <th className="py-2.5 px-4">SHA-256 Hash</th>
-              <th className="py-2.5 px-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-surface-container">
-            {documents.length > 0 ? (
-              documents.map((doc) => (
-                <tr 
-                  key={doc.id} 
-                  className={`hover:bg-surface-container-high/40 transition-colors ${
-                    doc.isNew ? 'bg-primary-container/10' : ''
-                  }`}
-                >
-                  <td className="py-3 px-4 font-semibold text-on-surface flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary-container shrink-0" />
-                    <span>{doc.filename}</span>
-                    {doc.isNew && (
-                      <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-bold animate-pulse">
-                        NEW
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-on-surface-variant">v{doc.version}</td>
-                  <td className="py-3 px-4">
-                    <ClearanceChip clearance={doc.classification} size="sm" />
-                  </td>
-                  <td className="py-3 px-4 text-tertiary">{doc.chunks} Chunks</td>
-                  <td className="py-3 px-4 text-outline font-mono text-[10px]" title={doc.sha256}>
-                    {doc.sha256?.substring(0, 16)}...
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(doc.id, doc.filename)}
-                      className="p-1 rounded text-outline hover:text-rose-400 hover:bg-surface-container transition-colors cursor-pointer"
-                      title="Delete document"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="py-6 text-center text-outline">
-                  No documents ingested yet. Upload an inspection report, SOP, or engineering manual above.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
     </div>
   );
