@@ -1,0 +1,61 @@
+=== OLLAMA LIST ===
+NAME          ID              SIZE      MODIFIED    
+gemma4:e4b    c6eb396dbd59    9.6 GB    4 hours ago    
+qwen3.5:4b    2a654d98e6fb    3.4 GB    5 hours ago    
+
+
+=== OLLAMA SHOW QWEN3.5:4B ===
+  Model
+    architecture        qwen35    
+    parameters          4.7B      
+    context length      262144    
+    embedding length    2560      
+    quantization        Q4_K_M    
+    requires            0.17.1    
+
+  Capabilities
+    completion    
+    vision        
+    tools         
+    thinking      
+
+  Parameters
+    top_k               20      
+    top_p               0.95    
+    presence_penalty    1.5     
+    temperature         1       
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                          
+
+
+
+=== OLLAMA SHOW GEMMA4:E4B ===
+  Model
+    architecture        gemma4    
+    parameters          8.0B      
+    context length      131072    
+    embedding length    2560      
+    quantization        Q4_K_M    
+    requires            0.20.0    
+
+  Capabilities
+    completion    
+    vision        
+    audio         
+    tools         
+    thinking      
+
+  Parameters
+    top_p          0.95    
+    temperature    1       
+    top_k          64      
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                          
+
+

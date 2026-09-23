@@ -1,0 +1,49 @@
+# ==============================================================================
+# Sovereign AI Workbench — Python Dependencies
+# Strictly air-gapped / local runtimes. Zero cloud AI / telemetry packages.
+# ==============================================================================
+
+# Agent & Model Orchestration
+langgraph
+langchain-core
+langchain-ollama
+ollama
+
+# Vector Database & Embeddings
+chromadb
+sentence-transformers
+
+# Document Parsing, OCR & Multimodal
+pymupdf
+paddleocr
+paddlepaddle
+pytesseract
+pillow
+
+# Deterministic Deliverable Generators
+python-docx
+openpyxl
+python-pptx
+
+# Sandboxed Execution
+docker
+
+# Backend API & Server
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+sqlalchemy
+sse-starlette
+argon2-cffi
+itsdangerous
+psutil
+pyyaml
+filetype
+
+# Testing & Quality Assurance
+pytest
+pytest-asyncio
+httpx
+ruff

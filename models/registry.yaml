@@ -1,0 +1,72 @@
+# ==============================================================================
+# Sovereign AI Workbench — Model Registry & Routing Configuration
+# Model names, capabilities, and routing rules live HERE, never in agent code.
+# ==============================================================================
+
+models:
+  default:
+    provider: ollama
+    model: "qwen3.5:4b"
+    enabled: true
+    capabilities: [reasoning, coding, tools, planning, rag_synthesis, drafting]
+    options: { num_ctx: 8192, temperature: 0.2, keep_alive: "5m", think: false }
+
+  vision:
+    provider: ollama
+    model: "gemma4:e4b"
+    enabled: true
+    capabilities: [vision, multimodal, visual_document_understanding]
+    options: { num_ctx: 4096, temperature: 0.1, keep_alive: "5m", think: false }
+
+  vision_fallback:
+    provider: ollama
+    model: "qwen3.5:4b"
+    enabled: false
+    capabilities: [vision]
+
+  future_strong_reasoning:
+    provider: ollama
+    model: "bonsai2:27b"
+    enabled: false
+    capabilities: [reasoning, tools]
+
+  future_vision:
+    provider: ollama
+    model: "local_vision:latest"
+    enabled: false
+    capabilities: [vision, ocr_assist]
+
+embeddings:
+  provider: sentence_transformers
+  model_path: "./data/models/Qwen3-Embedding-0.6B"
+  device: "cpu"
+
+ocr:
+  engine: paddleocr
+  fallback: tesseract
+  device: "cpu"
+
+routing:
+  # First matching rule wins. Conditions use task_type, modality, complexity.
+  rules:
+    - name: scanned_document
+      when: { modality: [scanned_pdf] }
+      pipeline: [ocr, vision]
+      vision_model: vision
+      reasoning_model: default
+    - name: image_or_photo
+      when: { modality: [image, photograph, drawing, chart_image] }
+      pipeline: [vision]
+      vision_model: vision
+      reasoning_model: default
+    - name: complex_reasoning
+      when: { complexity: [high] }
+      use: future_strong_reasoning
+      fallback: default
+    - name: coding
+      when: { task_type: [coding] }
+      use: default
+    - name: text_default
+      when: {}
+      use: default
+  vision_failure_fallback: vision_fallback
