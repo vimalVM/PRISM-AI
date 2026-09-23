@@ -9,6 +9,12 @@ from tools.vision import vision_analyze, vision_analyze_batch
 from tools.rag import search_knowledge
 from tools.calculator import calculate
 from tools.sandbox import run_code
+from tools.documents import (
+    create_docx,
+    create_xlsx,
+    create_pptx,
+    create_calculation_report,
+)
 
 __all__ = [
     "read_file",
@@ -19,4 +25,8 @@ __all__ = [
     "search_knowledge",
     "calculate",
     "run_code",
+    "create_docx",
+    "create_xlsx",
+    "create_pptx",
+    "create_calculation_report",
 ]

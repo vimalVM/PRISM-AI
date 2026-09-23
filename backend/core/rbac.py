@@ -168,3 +168,40 @@ def can_access_task(user: User, task: Task) -> bool:
     if user.role == Role.REVIEWER.value:
         return True
     return False
+
+
+def can_access_artifact(user: User, artifact: Artifact) -> Tuple[bool, str]:
+    """Determine if a user has access to view a specific artifact's metadata.
+    
+    SEC-20: Reviewer cannot access artifact assigned to another reviewer.
+    """
+    if user.role in (Role.ADMIN.value, Role.AUDITOR.value):
+        return True, "OK"
+    if artifact.owner_id == user.id:
+        return True, "OK"
+    if user.role == Role.REVIEWER.value:
+        if artifact.reviewer_id and artifact.reviewer_id != user.id:
+            return False, "Reviewer cannot access artifact assigned to another reviewer (SEC-20)"
+        return True, "OK"
+    return False, "Not authorized to access this artifact"
+
+
+def can_download_artifact(user: User, artifact: Artifact) -> Tuple[bool, str]:
+    """Determine if a user can download an artifact deliverable file.
+    
+    SEC-19: Auditor role cannot download deliverables (403).
+    SEC-20: Reviewer cannot download artifact assigned to another reviewer (403).
+    Engineers can only download their own artifacts.
+    Admins can download any artifact.
+    """
+    if user.role == Role.AUDITOR.value:
+        return False, "Auditor role is strictly prohibited from downloading artifacts (SEC-19)"
+    if user.role == Role.ADMIN.value:
+        return True, "OK"
+    if artifact.owner_id == user.id:
+        return True, "OK"
+    if user.role == Role.REVIEWER.value:
+        if artifact.reviewer_id and artifact.reviewer_id != user.id:
+            return False, "Reviewer cannot download artifact assigned to another reviewer (SEC-20)"
+        return True, "OK"
+    return False, f"User role '{user.role}' is not authorized to download this artifact"
