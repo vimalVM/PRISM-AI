@@ -1,23 +1,26 @@
 export type TaskStatus = 
-  | 'PENDING'
-  | 'RUNNING'
-  | 'AWAITING_REVIEW'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED';
+  | 'PENDING' | 'pending'
+  | 'RUNNING' | 'running'
+  | 'AWAITING_REVIEW' | 'awaiting_review'
+  | 'COMPLETED' | 'completed'
+  | 'FAILED' | 'failed'
+  | 'CANCELLED' | 'cancelled';
 
 export interface TaskEvent {
   id?: string;
   task_id: string;
-  seq: number;
-  ts: string;
-  type: string;
+  seq?: number;
+  ts?: string;
+  timestamp?: string;
+  type?: string;
+  event_type?: string;
   node?: string;
   tool?: string;
   model?: string;
   status: string;
   duration_ms?: number;
   summary: string;
+  detail?: any;
   refs?: any;
 }
 
@@ -34,10 +37,13 @@ export interface Task {
   created_at: string;
   finished_at?: string | null;
   error?: string | null;
+  result?: string | null;
 }
 
 export interface CreateTaskPayload {
-  message: string;
+  request_text: string;
+  message?: string;
   file_ids?: string[];
+  task_type?: string;
   task_hint?: string;
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SidebarProvider } from './context/SidebarContext';
 import { Shell } from './components/layout/Shell';
 import { RoleGuard } from './components/layout/RoleGuard';
 import { LoginPage } from './pages/LoginPage';
@@ -19,9 +20,10 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <SidebarProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
             {/* Authenticated Application Shell */}
             <Route
@@ -126,6 +128,7 @@ export const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </SidebarProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -1,4 +1,12 @@
-export type ArtifactStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CHANGES_REQUESTED';
+export type ArtifactStatus = 
+  | 'PENDING_REVIEW' 
+  | 'APPROVED' 
+  | 'REJECTED' 
+  | 'CHANGES_REQUESTED'
+  | 'pending_review' 
+  | 'approved' 
+  | 'rejected'
+  | 'changes_requested';
 
 export interface ValidationItem {
   name: string;
@@ -10,10 +18,13 @@ export interface Artifact {
   id: string;
   task_id: string;
   owner_id: string;
-  kind: string;
+  clearance?: string;
+  kind?: string;
+  file_type?: string;
   filename: string;
   sha256: string;
   status: ArtifactStatus;
+  validation_passed?: boolean;
   validation_report?: {
     valid: boolean;
     checks: Record<string, boolean>;
