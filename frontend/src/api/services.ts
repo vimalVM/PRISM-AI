@@ -1,5 +1,14 @@
 import { apiRequest } from './client';
-import { KBDocument, KBSearchResult, ModelsStatusResponse, AuditEvent, SystemStatus } from '../types/system';
+import { 
+  KBDocument, 
+  KBSearchResult, 
+  ModelsStatusResponse, 
+  AuditEvent, 
+  SystemStatus,
+  SystemStatusResponse,
+  ConnectionsAuditResponse,
+  EgressProbeResponse
+} from '../types/system';
 import { Clearance } from '../types/auth';
 
 // KB APIs
@@ -59,4 +68,18 @@ export async function verifyAuditChain(): Promise<{ valid: boolean; records_chec
 // System APIs
 export async function getSystemHealth(): Promise<any> {
   return await apiRequest('/health');
+}
+
+export async function getSystemStatus(): Promise<SystemStatusResponse> {
+  return await apiRequest<SystemStatusResponse>('/system/status');
+}
+
+export async function getSystemConnections(): Promise<ConnectionsAuditResponse> {
+  return await apiRequest<ConnectionsAuditResponse>('/system/connections');
+}
+
+export async function triggerEgressProbe(confirm: boolean = true): Promise<EgressProbeResponse> {
+  return await apiRequest<EgressProbeResponse>(`/system/probe?confirm=${confirm}`, {
+    method: 'POST',
+  });
 }

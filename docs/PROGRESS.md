@@ -14,7 +14,7 @@
 - [x] **Phase 9** — Deliverable generators + validation
 - [x] **Phase 10** — Inspection workflow + human review gate
 - [x] **Phase 11** — React frontend
-- [ ] **Phase 12** — Sovereignty panel + egress scan + offline proof
+- [x] **Phase 12** — Sovereignty panel + egress scan + offline proof
 - [ ] **Phase 13** — Test suite, evaluation harness, benchmarks
 - [ ] **Phase 14** — Packaging, start scripts, demo data, README
 - [ ] **Phase 15 (Future)** — Optional third model route (Bonsai 2 27B; post-MVP)
@@ -22,7 +22,7 @@
 ---
 
 ## Current Status
-- **Active Phase**: Phase 11 Complete (Ready for Phase 12)
+- **Active Phase**: Phase 12 Complete (Ready for Phase 13)
 - **Completed**:
   - Phase 0 (Scaffolding, environment, dependencies, Ollama model validation, Qwen & Gemma benchmarks, offline weights verified)
   - Phase 1 (config.py, registry.yaml, registry.py, ollama_client.py, selfcheck.py, backend/main.py with /api/health + /api/models + /api/models/reload, 20 tests all passing)
@@ -35,6 +35,8 @@
   - Phase 8 (Safe deterministic AST calculator `tools/calculator.py`, hardened Docker sandbox `docker/sandbox/Dockerfile` and `tools/sandbox.py` with `--network=none`, `--cpus=1`, `--memory=512m`, `--pids-limit=128`, `--read-only`, non-root user 10001, wall-clock timeout kill, 64KB output cap, static denylist scanner, code deliverable packaging `agent/coding.py`, bounded correction loop, 179/179 tests all passing)
   - Phase 9 (Templates generator `scripts/make_templates.py` for approval_note.docx, report.docx, and presentation.pptx; document tools `tools/documents.py` for `create_docx`, `create_xlsx`, `create_pptx`, and `create_calculation_report` with SEC-15 formula sanitization; deliverable validation library `agent/nodes/validate.py` with re-open checks, macro rejection, residual placeholder scanning, SEC-23 external relationship/OLE scanning, source reference validation, and calculation verification; artifacts API `backend/api/artifacts.py` with metadata, validation checklist, and scoped downloads enforcing SEC-19 auditor 403 and SEC-20 reviewer 403; 198/198 tests all passing)
   - Phase 10 (Demo A Inspection Report to Approval Note workflow `agent/inspection.py` end-to-end; OCR document extraction + raster image extraction; multimodal vision analysis with mandatory `limitation` & `observed` tags; SOP-301 RAG retrieval; deterministic AST numerical calculations for general wall thinning loss [1.90 mm], threshold exceedance [0.40 mm non-compliant], and hydrostatic proof pressure [24.75 MPa]; Word deliverable generation `Inspection_Approval_Note.docx` from `templates/approval_note.docx`; deliverable validation; Human Review Gate setting `PENDING_REVIEW` with agent unable to self-approve; Review REST API `POST /api/artifacts/{id}/review` & `GET /api/review/queue` strictly enforcing SEC-11 segregation of duties: author cannot review own artifact [403], admin cannot review artifact [403], only reviewer role can approve/reject; 205/205 tests all passing)
+  - Phase 11 (Complete React frontend built with Vite, TypeScript, Tailwind CSS, local font bundling [@fontsource/geist-sans, @fontsource/jetbrains-mono, lucide-react], unified AI workbench, inspection vision suite with interactive reticle HUD, human review gate with segregation of duties, sovereign knowledge base, model registry, audit trail, sovereignty status, and role-based access control login; production bundle compiled to frontend/dist and mounted to FastAPI StaticFiles)
+  - Phase 12 (Sovereignty & system endpoints `backend/api/system.py` [/api/system/status, /api/system/connections, /api/system/probe]; passive psutil socket audit of workbench processes; startup air-gap enforcement in `backend/main.py` refusing non-loopback binds and :cloud model tags; static egress scanner `scripts/scan_egress.py` verified with 0 findings across 111 files; automated offline evidence collector `scripts/offline_proof.ps1` and procedure `scripts/offline_proof.md`; evidence repository `docs/evidence/README.md` indexing E1..E8; live Sovereignty page UI integrated with backend telemetry; 212 tests passing)
 - **Deviations**: None.
 - **Decisions & Notes**:
   - `qwen3.5:4b` (3.4 GB) and `gemma4:e4b` (9.6 GB) verified on Ollama 0.34.2.
@@ -42,20 +44,20 @@
   - Qwen3-Embedding-0.6B offline encoding confirmed with `HF_HUB_OFFLINE=1`.
   - PaddleOCR offline inference confirmed with `enable_mkldnn=False` and `use_textline_orientation=True`.
   - Gemma 4 E4B live multimodal inference confirmed on `demo_inspection_photo.png` (passed in 24.91s).
+  - SEC-01 & SEC-02 verified: Startup enforcement rejects non-loopback hosts (`0.0.0.0` or external IPs) and external Ollama URLs, setting mandatory offline environment flags.
   - SEC-08 verified: Sandboxed code network access attempt fails in `--network=none`.
   - SEC-09 verified: Sandboxed infinite loop killed at wall-clock timeout (status `timeout`, exit code 124).
   - SEC-10 verified: Sandboxed memory bomb exceeding 512 MB fails safely.
   - SEC-11 verified: Segregation of duties strictly enforced. The artifact author cannot approve their own artifact (403 Forbidden). Admin cannot approve artifacts (403 Forbidden). Only designated non-author reviewers can approve or reject deliverables.
+  - SEC-14 verified: Append-only hash-chained audit trail confirms cryptographic integrity.
   - SEC-15 verified: Formula injection attempts (`=HYPERLINK(...)`, `=cmd|...`, `@SUM(...)`, `+1000`) in XLSX are safely escaped with `'` so Excel stores them strictly as text without formula execution.
   - SEC-19 verified: Auditor role is strictly prohibited from downloading deliverable artifacts (403 Forbidden).
   - SEC-20 verified: Reviewer role cannot access or download deliverable artifacts assigned to another reviewer (403 Forbidden).
   - SEC-23 verified: Office packages are scanned for external relationships (`TargetMode="External"`) in `.rels` files and embedded OLE/binary objects, failing validation if detected.
   - Approval Note template & generator enforce separate Facts vs Recommendations sections, mandatory source references on all findings, mandatory limitation notes on visual observations, and a blank human review & sign-off gate.
-  - Phase 10: 205 tests passing (198 regression tests + 6 review gate tests + 1 end-to-end Demo A test).
-  - Phase 11: Complete React frontend built with Vite, TypeScript, Tailwind, and local font bundling (`@fontsource/geist-sans`, `@fontsource/jetbrains-mono`, `lucide-react`) based directly on StitchMCP design specifications ('Sovereign Industrial Command' dark/light theme).
-  - All screens implemented: AI Workbench (Command deck, neural router stream, recommendation card with 3 metrics, sensors preview, workflow timeline, citations, local enclave), Inspection Vision (interactive reticle, HUD ribbon, diagnostic toolbar, Gemma 4 E4B card), Human Review Gate (active item master card, 5-phase lifecycle pipeline, proposal synthesis, citation grounding, dual-signature decision bar, review queue table), Sovereign Knowledge Base (cluster storage, dropzone, 6-stage micro-stepper, semantic search), Deliverables/Artifacts, Model Registry, Audit Trail, Sovereignty Status, and Role-Based Access Control login.
-  - Production build compiled to `frontend/dist` and mounted via FastAPI `StaticFiles`.
-  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 107 scanned files (zero external URLs, zero CDNs, zero telemetry).
+  - Phase 12: 212 tests passing (7 sovereignty tests + 204 regression tests + 1 Demo A end-to-end).
+  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 111 scanned files (zero external URLs, zero CDNs, zero telemetry).
+
 
 
 

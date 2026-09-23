@@ -76,3 +76,59 @@ export interface SystemStatus {
   non_loopback_connections: number;
   egress_scan_clean: boolean;
 }
+
+export interface SocketConnectionInfo {
+  pid: number;
+  process_name: string;
+  fd: number;
+  family: string;
+  type: string;
+  laddr: string;
+  raddr: string | null;
+  status: string;
+  is_loopback: boolean;
+}
+
+export interface ConnectionsAuditResponse {
+  status: 'CLEAN' | 'VIOLATION';
+  non_loopback_count: number;
+  total_connections_checked: number;
+  checked_processes: Array<{
+    pid: number;
+    name: string;
+    connection_count: number;
+  }>;
+  non_loopback_connections: SocketConnectionInfo[];
+  timestamp: string;
+}
+
+export interface SystemStatusResponse {
+  app_host: string;
+  app_port: number;
+  ollama_base_url: string;
+  allow_lan: boolean;
+  models: Array<{
+    name: string;
+    provider: string;
+    context_window: number;
+    capabilities: string[];
+  }>;
+  offline_flags: Record<string, string>;
+  last_scan_result: {
+    timestamp: string;
+    scanned_files_count: number;
+    clean: boolean;
+    findings_count: number;
+    findings: any[];
+  } | null;
+  sovereign_enforced: boolean;
+}
+
+export interface EgressProbeResponse {
+  probe_status: 'BLOCKED' | 'CONNECTED';
+  blocked: boolean;
+  target: string;
+  message: string;
+  timestamp: string;
+}
+

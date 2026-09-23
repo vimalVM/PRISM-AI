@@ -10,9 +10,9 @@ from typing import Any, Dict
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import artifacts, audit_api, auth, files, kb, tasks, users
+from backend.api import artifacts, audit_api, auth, files, kb, system, tasks, users
 from backend.core.audit import log_event
-from backend.core.config import get_settings
+from backend.core.config import LOOPBACK_HOSTS, get_settings
 from backend.core.db import User, init_db
 from backend.core.middleware import (
     CSRFProtectionMiddleware,
@@ -23,16 +23,60 @@ from backend.core.rbac import Role, require_role
 from backend.core.selfcheck import run_startup_self_checks
 from models.ollama_client import OllamaClient
 from models.registry import get_registry, reload_registry
+import os
+from urllib.parse import urlparse
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sovereign-workbench")
 
 
+def enforce_startup_sovereignty() -> None:
+    """Enforce hard air-gap and sovereignty constraints on startup (03_SECURITY_AND_ACCESS.md §3.3)."""
+    settings = get_settings()
+
+    # 1. Host loopback confinement
+    if settings.APP_HOST not in LOOPBACK_HOSTS and not settings.ALLOW_LAN:
+        raise RuntimeError(
+            f"SOVEREIGNTY VIOLATION: APP_HOST '{settings.APP_HOST}' is not loopback. "
+            "Air-gap rules strictly require 127.0.0.1 or localhost unless ALLOW_LAN=true."
+        )
+
+    # 2. Ollama base URL loopback check
+    parsed = urlparse(settings.OLLAMA_BASE_URL)
+    hostname = parsed.hostname or ""
+    if hostname not in LOOPBACK_HOSTS:
+        raise RuntimeError(
+            f"SOVEREIGNTY VIOLATION: OLLAMA_BASE_URL '{settings.OLLAMA_BASE_URL}' points to external host '{hostname}'. "
+            "External AI endpoints are strictly forbidden."
+        )
+
+    # 3. Model registry check: reject :cloud models and external providers
+    registry = get_registry(settings.MODEL_REGISTRY_PATH)
+    for key, entry in registry.models.items():
+        if ":cloud" in entry.model.lower():
+            raise RuntimeError(
+                f"SOVEREIGNTY VIOLATION: Model '{entry.model}' contains ':cloud' tag. "
+                "Cloud models are strictly forbidden."
+            )
+        if entry.provider not in {"ollama", "local"}:
+            raise RuntimeError(
+                f"SOVEREIGNTY VIOLATION: Model '{entry.model}' uses provider '{entry.provider}'. "
+                "Only local inference providers are permitted."
+            )
+
+    # 4. Enforce offline telemetry & hub environment variables
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    os.environ["ANONYMIZED_TELEMETRY"] = "False"
+    os.environ["DO_NOT_TRACK"] = "1"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager running DB initialization and startup pre-flight checks."""
     logger.info("Initializing Sovereign AI Workbench database and backend...")
+    enforce_startup_sovereignty()
     init_db()
 
     all_passed, checks = run_startup_self_checks()
@@ -80,6 +124,7 @@ def create_app() -> FastAPI:
     app.include_router(files.router, prefix="/api")
     app.include_router(artifacts.router, prefix="/api")
     app.include_router(artifacts.review_router, prefix="/api")
+    app.include_router(system.router, prefix="/api")
 
     @app.get("/api/health")
     async def health_check() -> Dict[str, Any]:

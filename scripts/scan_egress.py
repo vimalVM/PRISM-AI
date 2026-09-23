@@ -111,8 +111,8 @@ def scan_file(file_path: Path) -> List[Dict[str, Any]]:
         # 1. URL Scanning
         urls = url_regex.findall(line)
         for url in urls:
-            # Clean trailing punctuation
-            clean_url = url.rstrip(".,;)\"'>]")
+            # Clean trailing punctuation and markdown delimiters
+            clean_url = url.rstrip(".,;)\"'>]`")
             if not is_allowed_url(clean_url):
                 findings.append({
                     "file": str(file_path),
