@@ -24,18 +24,28 @@ export interface KBSearchResult {
 
 export async function getKBDocuments(): Promise<KBDocumentResponse[]> {
   try {
-    const data = await apiRequest<{ documents: KBDocumentResponse[] }>('/kb/documents');
-    return data.documents || [];
-  } catch {
+    const data = await apiRequest<KBDocumentResponse[] | { documents: KBDocumentResponse[] }>('/kb/documents');
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return (data as any).documents || [];
+  } catch (err) {
+    console.error('Failed to load KB documents:', err);
     return [];
   }
 }
 
-export async function uploadKBDocument(file: File, classification: Clearance): Promise<KBDocumentResponse> {
+export async function uploadKBDocument(
+  file: File, 
+  docId: string, 
+  classification: number = 2
+): Promise<any> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('classification', classification);
-  return await apiRequest<KBDocumentResponse>('/kb/upload', {
+  formData.append('doc_id', docId);
+  formData.append('classification', String(classification));
+  formData.append('version', '1');
+  return await apiRequest<any>('/kb/upload', {
     method: 'POST',
     body: formData,
   });
@@ -50,11 +60,16 @@ export async function deleteKBDocument(docId: string): Promise<boolean> {
   }
 }
 
-export async function searchKB(query: string, limit = 5): Promise<KBSearchResult[]> {
+export async function searchKB(query: string, k = 5): Promise<any[]> {
   try {
-    const data = await apiRequest<{ results: KBSearchResult[] }>(`/kb/search?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return data.results || [];
-  } catch {
+    const data = await apiRequest<{ query: string; total: number; chunks: any[] }>('/kb/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, k }),
+    });
+    return data.chunks || [];
+  } catch (err) {
+    console.error('KB Search failed:', err);
     return [];
   }
 }
+

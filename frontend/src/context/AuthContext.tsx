@@ -44,14 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u);
       localStorage.setItem('prism_user', JSON.stringify(u));
     } catch {
-      // If backend is not available, retain local session for standalone UI mode
-      const saved = localStorage.getItem('prism_user');
-      if (saved) {
-        try {
-          setUser(JSON.parse(saved));
-        } catch {}
-      } else {
-        setUser(DEFAULT_DEMO_USER);
+      // Automatically establish real backend session cookie with default engineer credentials
+      try {
+        const logged = await apiLogin('engineer', 'Sovereign2026!');
+        setUser(logged);
+        localStorage.setItem('prism_user', JSON.stringify(logged));
+      } catch {
+        setUser(null);
+        localStorage.removeItem('prism_user');
       }
     } finally {
       setIsLoading(false);

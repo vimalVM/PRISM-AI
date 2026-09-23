@@ -8,11 +8,14 @@ Implements Phase 4 APIs per 02_DESIGN_DOC.md ยง8 and 03_SECURITY_AND_ACCESS.md ย
 - POST   /api/kb/search: Search knowledge base within user's clearance (Admin, Engineer, Reviewer).
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("sovereign-workbench.api.kb")
 
 from backend.core.config import get_settings
 from backend.core.db import KBDocument, User, get_db
@@ -66,6 +69,48 @@ async def list_documents(
             )
         )
     return results
+ 
+ 
+@router.post("/upload", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def upload_and_ingest_kb_document(
+    file: UploadFile = File(...),
+    doc_id: str = Form(...),
+    classification: int = Form(2),
+    version: int = Form(1),
+    current_user: User = Depends(require_role(Role.ADMIN, Role.ENGINEER)),
+) -> Dict[str, Any]:
+    """Upload a file and immediately ingest it into the Knowledge Base (ChromaDB + SQLite)."""
+    kb_dir = Path("data/knowledge_base")
+    kb_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_filename = Path(file.filename or "uploaded_sop.txt").name
+    target_path = kb_dir / f"{doc_id}_{safe_filename}"
+
+    content = await file.read()
+    target_path.write_bytes(content)
+
+    try:
+        result = ingest_document(
+            file_path=target_path,
+            doc_id=doc_id,
+            classification=classification,
+            version=version,
+            uploaded_by=current_user.id,
+        )
+        return {
+            "success": True,
+            "doc_id": doc_id,
+            "filename": target_path.name,
+            "classification": classification,
+            "chunks_ingested": result.get("chunks_ingested", 1),
+            "message": f"Successfully ingested {target_path.name} into Knowledge Base.",
+        }
+    except Exception as exc:
+        logger.exception(f"Failed to ingest uploaded document: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to ingest document: {exc}",
+        )
 
 
 @router.post("/documents", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
