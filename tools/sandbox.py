@@ -250,3 +250,24 @@ def run_code(args: RunCodeArgs, ctx: ToolContext) -> RunCodeResult:
     finally:
         # Secure cleanup: remove temporary sandbox workspace
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def build_docker_run_command(entrypoint: str = "pytest -q", run_id: Optional[str] = None) -> List[str]:
+    """Return standard hardened docker run command arguments for auditing/verification."""
+    return [
+        "docker", "run",
+        "--network=none",
+        "--cpus=1",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--pids-limit=128",
+        "--read-only",
+        "--tmpfs=/tmp:rw,noexec,size=64m",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges:true",
+        "--user=10001:10001",
+        "-v", f"/tmp/{run_id or 'sandbox'}:/work:rw",
+        "-w", "/work",
+        "sovereign-sandbox:latest",
+        entrypoint,
+    ]

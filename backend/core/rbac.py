@@ -5,7 +5,7 @@ SEC-12 (engineers blocked from admin endpoints), and permission matrix enforceme
 """
 
 from enum import Enum, IntEnum
-from typing import Any, Callable, Dict, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from fastapi import Depends, HTTPException, status
 
@@ -132,7 +132,14 @@ def require_clearance(min_level: int | Clearance) -> Callable:
 
 # --- Segregation of Duties and Scoped Access (SEC-11) ---
 
-def can_review_artifact(user: User, artifact: Artifact) -> Tuple[bool, str]:
+def can_review_artifact(
+    user: Optional[User] = None,
+    artifact: Optional[Artifact] = None,
+    *,
+    user_role: Optional[str] = None,
+    user_id: Optional[str] = None,
+    artifact_owner_id: Optional[str] = None,
+) -> Tuple[bool, str]:
     """Check if user is permitted to review and approve/reject an artifact.
     
     Enforces segregation of duties:
@@ -142,10 +149,14 @@ def can_review_artifact(user: User, artifact: Artifact) -> Tuple[bool, str]:
     
     Returns (allowed, reason).
     """
-    if user.role != Role.REVIEWER.value:
-        return False, f"Role '{user.role}' cannot review artifacts (only reviewer)"
+    effective_role = user.role if user is not None else user_role
+    effective_user_id = user.id if user is not None else user_id
+    effective_owner_id = artifact.owner_id if artifact is not None else artifact_owner_id
 
-    if artifact.owner_id == user.id:
+    if effective_role != Role.REVIEWER.value:
+        return False, f"Role '{effective_role}' cannot review artifacts (only reviewer)"
+
+    if effective_owner_id == effective_user_id:
         return False, "Segregation of duties: authors cannot review or approve their own artifacts"
 
     return True, "OK"

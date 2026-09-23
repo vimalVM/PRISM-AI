@@ -130,3 +130,7 @@ def run_agent(
 
     final_state = app.invoke(initial_state)
     return final_state
+
+
+# Alias for evaluation harness
+create_agent_graph = build_workbench_graph

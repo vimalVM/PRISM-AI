@@ -323,6 +323,43 @@ def route_task(
     return plan
 
 
+def route_request(
+    user_request: str,
+    files: Optional[List[Any]] = None,
+    file_paths: Optional[List[str]] = None,
+    registry: Optional[ModelRegistry] = None,
+    run_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    role: Optional[str] = None,
+) -> RoutePlan:
+    """Classify user request and resolve route plan with model selection."""
+    all_files = list(files or [])
+    if file_paths:
+        for p in file_paths:
+            all_files.append({"path": p})
+    cls_result = classify_request(user_request, files=all_files)
+    mods = list(cls_result.modalities)
+    if any(str(p).lower().endswith((".png", ".jpg", ".jpeg", ".bmp")) for p in (file_paths or [])):
+        if "photograph" not in mods and "image" not in mods:
+            mods.append("photograph")
+
+    facts = {
+        "user_request": user_request,
+        "task_type": cls_result.task_type,
+        "modality": mods,
+        "modalities": mods,
+        "has_images": bool(
+            "image" in mods
+            or "photograph" in mods
+            or "scanned_pdf" in mods
+            or any("photo" in str(f).lower() or ".png" in str(f).lower() for f in (file_paths or []))
+        ),
+        "complexity": cls_result.complexity,
+        "risk": cls_result.risk,
+    }
+    return route_task(facts, registry=registry, run_id=run_id, user_id=user_id, role=role)
+
+
 class ModelSwapManager:
     """Manages active loaded model state, unloads models when switching on VRAM-limited systems,
     and groups vision operations to minimize swaps.

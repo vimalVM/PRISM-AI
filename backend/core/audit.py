@@ -262,3 +262,21 @@ def verify_chain(db: Optional[Session] = None) -> Tuple[bool, Optional[str]]:
     finally:
         if owns_session:
             db.close()
+
+
+def verify_audit_hash_chain(db: Optional[Session] = None) -> Tuple[bool, int, Optional[str]]:
+    """Verify cryptographic integrity of audit log and return (is_valid, record_count, error_msg)."""
+    owns_session = False
+    if db is None:
+        factory = get_session_factory()
+        db = factory()
+        owns_session = True
+
+    try:
+        stmt = select(AuditLog).order_by(AuditLog.id.asc())
+        records = db.execute(stmt).scalars().all()
+        valid, err = verify_chain(db)
+        return valid, len(records), err
+    finally:
+        if owns_session:
+            db.close()

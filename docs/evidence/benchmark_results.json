@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-09-23 11:18:12 UTC",
+  "phase": "Phase 13 \u2014 Test suite, evaluation harness, benchmarks",
+  "system": {
+    "os": "Windows",
+    "os_release": "11",
+    "os_version": "10.0.26200",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "cpu_count_logical": 16,
+    "cpu_count_physical": 10,
+    "total_ram_gb": 15.71,
+    "available_ram_gb": 4.19,
+    "used_ram_percent": 73.3,
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+        "total_vram_mb": 6144.0,
+        "used_vram_mb": 4331.0,
+        "free_vram_mb": 1672.0,
+        "temp_c": 53.0
+      }
+    ]
+  },
+  "tools": {
+    "calculator": {
+      "iterations": 250,
+      "total_duration_s": 1.8111,
+      "operations_per_second": 138.04,
+      "avg_latency_ms": 7.244
+    },
+    "deliverables": {
+      "docx_generation_ms": 62.3,
+      "docx_artifact_id": "art-bench_deliv-docx-1790162265",
+      "xlsx_generation_ms": 34.03,
+      "xlsx_artifact_id": "art-bench_deliv-xlsx-1790162265"
+    }
+  },
+  "models": {
+    "primary_model": {
+      "error": "HTTP Error 500: Internal Server Error",
+      "model": "qwen3.5:4b"
+    },
+    "vision_model": {
+      "model": "gemma4:e4b",
+      "status": "installed"
+    }
+  }
+}

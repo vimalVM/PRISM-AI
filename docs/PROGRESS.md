@@ -15,14 +15,14 @@
 - [x] **Phase 10** — Inspection workflow + human review gate
 - [x] **Phase 11** — React frontend
 - [x] **Phase 12** — Sovereignty panel + egress scan + offline proof
-- [ ] **Phase 13** — Test suite, evaluation harness, benchmarks
+- [x] **Phase 13** — Test suite, evaluation harness, benchmarks
 - [ ] **Phase 14** — Packaging, start scripts, demo data, README
 - [ ] **Phase 15 (Future)** — Optional third model route (Bonsai 2 27B; post-MVP)
 
 ---
 
 ## Current Status
-- **Active Phase**: Phase 12 Complete (Ready for Phase 13)
+- **Active Phase**: Phase 13 Complete (Ready for Phase 14)
 - **Completed**:
   - Phase 0 (Scaffolding, environment, dependencies, Ollama model validation, Qwen & Gemma benchmarks, offline weights verified)
   - Phase 1 (config.py, registry.yaml, registry.py, ollama_client.py, selfcheck.py, backend/main.py with /api/health + /api/models + /api/models/reload, 20 tests all passing)
@@ -37,6 +37,7 @@
   - Phase 10 (Demo A Inspection Report to Approval Note workflow `agent/inspection.py` end-to-end; OCR document extraction + raster image extraction; multimodal vision analysis with mandatory `limitation` & `observed` tags; SOP-301 RAG retrieval; deterministic AST numerical calculations for general wall thinning loss [1.90 mm], threshold exceedance [0.40 mm non-compliant], and hydrostatic proof pressure [24.75 MPa]; Word deliverable generation `Inspection_Approval_Note.docx` from `templates/approval_note.docx`; deliverable validation; Human Review Gate setting `PENDING_REVIEW` with agent unable to self-approve; Review REST API `POST /api/artifacts/{id}/review` & `GET /api/review/queue` strictly enforcing SEC-11 segregation of duties: author cannot review own artifact [403], admin cannot review artifact [403], only reviewer role can approve/reject; 205/205 tests all passing)
   - Phase 11 (Complete React frontend built with Vite, TypeScript, Tailwind CSS, local font bundling [@fontsource/geist-sans, @fontsource/jetbrains-mono, lucide-react], unified AI workbench, inspection vision suite with interactive reticle HUD, human review gate with segregation of duties, sovereign knowledge base, model registry, audit trail, sovereignty status, and role-based access control login; production bundle compiled to frontend/dist and mounted to FastAPI StaticFiles)
   - Phase 12 (Sovereignty & system endpoints `backend/api/system.py` [/api/system/status, /api/system/connections, /api/system/probe]; passive psutil socket audit of workbench processes; startup air-gap enforcement in `backend/main.py` refusing non-loopback binds and :cloud model tags; static egress scanner `scripts/scan_egress.py` verified with 0 findings across 111 files; automated offline evidence collector `scripts/offline_proof.ps1` and procedure `scripts/offline_proof.md`; evidence repository `docs/evidence/README.md` indexing E1..E8; live Sovereignty page UI integrated with backend telemetry; 212 tests passing)
+  - Phase 13 (Evaluation harness `scripts/eval_run.py` executing all 16 evaluation checks EV-01..EV-16 with 100% pass rate; generated markdown report `docs/evidence/eval_report.md`; hardware and tool benchmark harness `scripts/benchmark.py` measuring host CPU/RAM, NVIDIA RTX 3050 Laptop GPU VRAM, AST calculator throughput, DOCX/XLSX generation latency, and Ollama inference speed, generating `docs/evidence/benchmark.md` and `docs/evidence/benchmark_results.json`; full CI pipeline runners `scripts/check_all.ps1` and `scripts/check_all.sh` verifying egress scan, frontend build, pytest suite, eval harness, and benchmarks end-to-end; 213 unit and integration tests passing in 188s)
 - **Deviations**: None.
 - **Decisions & Notes**:
   - `qwen3.5:4b` (3.4 GB) and `gemma4:e4b` (9.6 GB) verified on Ollama 0.34.2.
@@ -55,8 +56,9 @@
   - SEC-20 verified: Reviewer role cannot access or download deliverable artifacts assigned to another reviewer (403 Forbidden).
   - SEC-23 verified: Office packages are scanned for external relationships (`TargetMode="External"`) in `.rels` files and embedded OLE/binary objects, failing validation if detected.
   - Approval Note template & generator enforce separate Facts vs Recommendations sections, mandatory source references on all findings, mandatory limitation notes on visual observations, and a blank human review & sign-off gate.
-  - Phase 12: 212 tests passing (7 sovereignty tests + 204 regression tests + 1 Demo A end-to-end).
-  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 111 scanned files (zero external URLs, zero CDNs, zero telemetry).
+  - Evaluation Matrix: All 16 checks (EV-01 through EV-16) pass in `docs/evidence/eval_report.md` (100.0%).
+  - CI Pipeline: `scripts/check_all.ps1` and `scripts/check_all.sh` run all 5 verification phases without failure.
+  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 115 scanned files (zero external URLs, zero CDNs, zero telemetry).
 
 
 

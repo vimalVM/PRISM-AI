@@ -57,7 +57,7 @@ class OCRDocumentArgs(BaseModel):
     """Arguments for ocr_document tool."""
     file_path: str = Field(description="Path to local PDF or image document (within allowed roots)")
     pages: Optional[List[int]] = Field(default=None, description="1-indexed list of pages to process. If None, processes all.")
-    dpi: int = Field(default=200, ge=72, le=600, description="Rendering DPI for scanned pages (default 200)")
+    dpi: int = Field(default=150, ge=72, le=600, description="Rendering DPI for scanned pages (default 150)")
     min_chars_threshold: int = Field(default=50, ge=0, description="Minimum characters for native text; below this triggers OCR")
     force_ocr: bool = Field(default=False, description="Force OCR execution even if native text is present")
     extract_images: bool = Field(default=True, description="Whether to extract embedded raster images for vision analysis")
@@ -99,6 +99,12 @@ def _run_paddle_ocr(pil_img: Image.Image) -> Tuple[str, float, List[OCRLine]]:
     ocr = _get_paddle_ocr()
     if ocr is None:
         raise RuntimeError("PaddleOCR engine not available.")
+
+    # Guard against CPU static tensor buffer overflow on high-resolution bitmaps
+    max_dim = 1600
+    if pil_img.width > max_dim or pil_img.height > max_dim:
+        pil_img = pil_img.copy()
+        pil_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
     img_np = np.array(pil_img)
     results = list(ocr.predict(img_np))
