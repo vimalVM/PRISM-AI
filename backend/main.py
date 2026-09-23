@@ -7,8 +7,9 @@ security headers, strict CORS, CSRF protection, and role-based access control.
 from contextlib import asynccontextmanager
 import logging
 from typing import Any, Dict
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 
 from backend.api import artifacts, audit_api, auth, files, kb, system, tasks, users
 from backend.core.audit import log_event
@@ -189,12 +190,30 @@ def create_app() -> FastAPI:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to reload registry: {e}")
 
-    # Mount built frontend dist if available
+    # Mount built frontend dist with SPA fallback routing
     from pathlib import Path
     dist_dir = Path(__file__).resolve().parent.parent / "frontend" / "dist"
     if dist_dir.exists():
         from fastapi.staticfiles import StaticFiles
-        app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+
+        assets_dir = dist_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+        @app.get("/{full_path:path}")
+        async def serve_spa_frontend(full_path: str, request: Request):
+            # API requests must return 404 JSON, not index.html
+            if full_path.startswith("api/") or full_path == "api":
+                raise HTTPException(status_code=404, detail="Not Found")
+            # If static file exists, serve it
+            target_file = dist_dir / full_path
+            if full_path and target_file.is_file():
+                return FileResponse(str(target_file))
+            # SPA client-side routing fallback
+            index_path = dist_dir / "index.html"
+            if index_path.exists():
+                return FileResponse(str(index_path))
+            raise HTTPException(status_code=404, detail="Frontend index.html not found")
 
     return app
 
