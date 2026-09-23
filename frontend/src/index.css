@@ -9,13 +9,14 @@
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #051424;
-    color: #d4e4fa;
+    background-color: rgb(var(--surface-rgb));
+    color: rgb(var(--on-surface-rgb));
     font-family: 'Geist', sans-serif;
   }
   
   body {
     overscroll-behavior: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -26,16 +27,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #010f1f;
+  background: rgb(var(--surface-container-lowest-rgb));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1c2b3c;
+  background: rgb(var(--surface-container-highest-rgb));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00e5ff;
+  background: rgb(var(--primary-container-rgb));
 }
 
 /* Neon Glows & Diode Radiance */

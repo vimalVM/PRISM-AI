@@ -43,7 +43,7 @@ export const NeuralRouterStream: React.FC<NeuralRouterStreamProps> = ({
           <span>Task Classification: {taskClassification}</span>
         </div>
         <ArrowRight className="w-3.5 h-3.5 text-outline" />
-        <div className="flex items-center gap-1.5 text-tertiary-fixed font-semibold">
+        <div className="flex items-center gap-1.5 text-tertiary font-semibold">
           <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
           <span>Active: {isGemmaActive ? 'Gemma 4 E4B (Vision)' : 'Qwen 3.5 4B (Reasoning)'}</span>
         </div>

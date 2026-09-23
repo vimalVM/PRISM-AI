@@ -128,13 +128,13 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   <span>{step.title}</span>
                   {isActive && <RefreshCw className="w-3 h-3 animate-spin text-primary-container" />}
                 </div>
-                <div className="font-mono text-[10px] text-outline truncate">{step.desc}</div>
+                <div className="font-mono text-[10px] text-on-surface-variant truncate">{step.desc}</div>
               </div>
 
               {/* Step Duration */}
               <span
                 className={`font-mono text-[10px] shrink-0 ${
-                  isActive ? 'text-primary-container animate-pulse font-bold' : isDone ? 'text-tertiary-fixed-dim' : 'text-outline'
+                  isActive ? 'text-primary-container animate-pulse font-bold' : isDone ? 'text-tertiary font-medium' : 'text-on-surface-variant/60'
                 }`}
               >
                 {step.duration}
