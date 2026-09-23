@@ -144,6 +144,13 @@ def create_app() -> FastAPI:
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to reload registry: {e}")
 
+    # Mount built frontend dist if available
+    from pathlib import Path
+    dist_dir = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+    if dist_dir.exists():
+        from fastapi.staticfiles import StaticFiles
+        app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+
     return app
 
 

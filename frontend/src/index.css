@@ -1,0 +1,68 @@
+@import "@fontsource/geist-sans";
+@import "@fontsource/jetbrains-mono";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #051424;
+    color: #d4e4fa;
+    font-family: 'Geist', sans-serif;
+  }
+  
+  body {
+    overscroll-behavior: none;
+  }
+}
+
+/* Custom Cyber-Industrial Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #010f1f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1c2b3c;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00e5ff;
+}
+
+/* Neon Glows & Diode Radiance */
+.glow-cyan {
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 8px #00e5ff;
+}
+
+.glow-emerald-sm {
+  box-shadow: 0 0 8px #10b981;
+}
+
+.glow-amber-sm {
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.glow-rose-sm {
+  box-shadow: 0 0 8px #ffb4ab;
+}
+
+/* Reticle Corner Brackets */
+.reticle-bracket {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #00e5ff;
+}
