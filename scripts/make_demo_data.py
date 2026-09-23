@@ -11,7 +11,7 @@ Writes files into data/knowledge_base/ and indexes them into ChromaDB and SQLite
 
 from pathlib import Path
 import sys
-from typing import Dict
+from typing import Dict, Tuple
 
 # Ensure repository root is on sys.path
 repo_root = Path(__file__).resolve().parent.parent
@@ -133,9 +133,128 @@ def generate_and_ingest_demo_data(ingest_to_kb: bool = True) -> Dict[str, Path]:
     return created_paths
 
 
+def generate_scanned_inspection_pdf(output_dir: Path | None = None) -> Tuple[Path, Path]:
+    """Generate synthetic 2-page scanned-style inspection report PDF with embedded photo."""
+    import io
+    import fitz
+    from PIL import Image, ImageDraw
+
+    out_dir = output_dir or Path("data/incoming")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = out_dir / "demo_scanned_inspection_report.pdf"
+    photo_path = out_dir / "demo_inspection_photo.png"
+
+    # 1. Render Page 1 as an image (simulating a scanned document)
+    # A4 at ~150 DPI: 1240 x 1754 px
+    p1_img = Image.new("RGB", (1240, 1754), color=(252, 252, 250))
+    draw = ImageDraw.Draw(p1_img)
+
+    # Header and borders
+    draw.rectangle([(40, 40), (1200, 1714)], outline=(180, 180, 180), width=2)
+    draw.rectangle([(50, 50), (1190, 180)], fill=(235, 238, 242))
+
+    # Stamp / Classification banner
+    draw.text((70, 70), "CONFIDENTIAL - PROPRIETARY INTEGRITY AUDIT", fill=(180, 20, 20))
+    draw.text((70, 110), "ULTRASONIC THICKNESS & WELD INSPECTION REPORT", fill=(20, 30, 60))
+    draw.text((70, 145), "DOCUMENT REF: INSP-2026-PV402  |  DATE: 2026-09-15  |  FACILITY: UNIT 4B", fill=(80, 80, 80))
+
+    lines = [
+        ("SECTION 1: TARGET EQUIPMENT IDENTIFICATION", (20, 40, 80)),
+        ("Equipment: Primary Catalytic Distillation Vessel (Tag: PV-402)", (40, 40, 40)),
+        ("Design Spec: ASME Section VIII Div 1  |  Rated Pressure: 16.5 MPa", (40, 40, 40)),
+        ("Nominal Shell Wall Thickness: 18.0 mm  |  Material: SA-516 Grade 70", (40, 40, 40)),
+        ("Governing SOP Standard: SOP-301 Section 2 (Weld Inspection Tolerances)", (40, 40, 40)),
+        ("", (0, 0, 0)),
+        ("SECTION 2: NON-DESTRUCTIVE ULTRASONIC TEST FINDINGS", (20, 40, 80)),
+        ("Inspection Method: Phased Array Ultrasonic Testing (PAUT) & Digital B-Scan", (40, 40, 40)),
+        ("Inspected Region: Circumferential Weld Seam CW-3 (Elevation +4.2 m)", (40, 40, 40)),
+        ("Measured Minimum Wall Thickness: 16.1 mm", (160, 20, 20)),
+        ("Total General Wall Thinning: 1.9 mm loss from nominal (18.0 mm)", (160, 20, 20)),
+        ("SOP-301 Allowed Thinning Threshold: 1.5 mm MAXIMUM", (40, 40, 40)),
+        ("Deviation Assessment: EXCEEDS MAXIMUM PERMITTED THINNING BY 0.4 mm", (180, 0, 0)),
+        ("", (0, 0, 0)),
+        ("SECTION 3: SURFACE CORROSION & PITTING SURVEY", (20, 40, 80)),
+        ("Inspection Method: Direct Video Borescope & Laser Profilometry", (40, 40, 40)),
+        ("Localized Pit Cluster: Located 120 mm upstream of Weld CW-3 heat affected zone", (40, 40, 40)),
+        ("Measured Pit Cluster Width: 14.5 mm (SOP-301 limit is 10.0 mm)", (160, 20, 20)),
+        ("Measured Maximum Pit Depth: 2.6 mm (SOP-301 limit is 2.2 mm)", (160, 20, 20)),
+        ("Crack Indication: No linear crack indications observed along root pass.", (40, 40, 40)),
+        ("", (0, 0, 0)),
+        ("SECTION 4: QUALITY ASSURANCE DISPOSITION & RECOMMENDATIONS", (20, 40, 80)),
+        ("1. Immediate Decertification: Vessel PV-402 is decertified pending formal repair.", (40, 40, 40)),
+        ("2. Weld Overlay: Mechanical Engineering must submit weld overlay repair plan.", (40, 40, 40)),
+        ("3. Proof Test: Mandatory 1.5x MAWP hydrostatic proof test required prior to return to service.", (40, 40, 40)),
+        ("4. See Page 2 for high-resolution visual evidence photograph of Seam CW-3.", (40, 40, 40)),
+    ]
+
+    y = 230
+    for text, color in lines:
+        if text:
+            draw.text((70, y), text, fill=color)
+        y += 45
+
+    # 2. Render Page 2 and Inspection Photo
+    # Photo: 800 x 600 px showing technical diagram of weld seam with pit marks
+    photo = Image.new("RGB", (800, 600), color=(220, 225, 230))
+    p_draw = ImageDraw.Draw(photo)
+
+    # Draw simulated weld plates and seam
+    p_draw.rectangle([(50, 150), (750, 450)], fill=(160, 165, 175), outline=(100, 105, 115), width=3)
+    p_draw.line([(400, 150), (400, 450)], fill=(90, 80, 70), width=24)  # Weld bead
+    p_draw.text((320, 110), "WELD SEAM CW-3", fill=(40, 50, 70))
+
+    # Draw corrosion pit cluster
+    p_draw.ellipse([(280, 260), (330, 310)], fill=(120, 60, 40), outline=(80, 20, 10), width=2)
+    p_draw.text((250, 325), "PIT CLUSTER (14.5mm x 2.6mm)", fill=(160, 20, 20))
+    p_draw.line([(310, 310), (310, 325)], fill=(160, 20, 20), width=2)
+
+    # Save photo directly to incoming
+    photo.save(str(photo_path), format="PNG")
+
+    # Page 2 image
+    p2_img = Image.new("RGB", (1240, 1754), color=(252, 252, 250))
+    p2_draw = ImageDraw.Draw(p2_img)
+    p2_draw.rectangle([(40, 40), (1200, 1714)], outline=(180, 180, 180), width=2)
+    p2_draw.text((70, 70), "CONFIDENTIAL - VISUAL EVIDENCE & PHOTOGRAPHIC RECORD", fill=(180, 20, 20))
+    p2_draw.text((70, 110), "PAGE 2: OPTICAL BORESCOPE SURVEY - VESSEL PV-402 WELD CW-3", fill=(20, 30, 60))
+    p2_draw.text((70, 160), "Figure 1: Circumferential weld CW-3 root pass and adjacent HAZ corrosion pitting cluster.", fill=(60, 60, 60))
+
+    # Paste photo into Page 2
+    p2_img.paste(photo, (220, 250))
+    p2_draw.text((220, 870), "Image Reference: page_2_image_1  |  Sensor: High-Res Endoscope Model V7", fill=(80, 80, 80))
+    p2_draw.text((220, 910), "Observation: Localized metal loss and pitting visible in heat-affected zone.", fill=(40, 40, 40))
+
+    # 3. Create PDF with PyMuPDF containing the rendered page images and embedded photo
+    doc = fitz.open()
+
+    # Add Page 1 as pure image page (no native text -> forces OCR)
+    p1_bytes = io.BytesIO()
+    p1_img.save(p1_bytes, format="PNG")
+    page1 = doc.new_page(width=612, height=792)  # Standard letter
+    page1.insert_image(page1.rect, stream=p1_bytes.getvalue())
+
+    # Add Page 2 as page with embedded raster photo
+    page2 = doc.new_page(width=612, height=792)
+    # Background
+    p2_bytes = io.BytesIO()
+    p2_img.save(p2_bytes, format="PNG")
+    page2.insert_image(page2.rect, stream=p2_bytes.getvalue())
+
+    doc.save(str(pdf_path))
+    doc.close()
+
+    return pdf_path, photo_path
+
+
 if __name__ == "__main__":
     print("--- Generating and Ingesting Synthetic Demo SOPs ---")
     paths = generate_and_ingest_demo_data(ingest_to_kb=True)
     print(f"Successfully created and ingested {len(paths)} SOPs:")
     for doc_id, p in paths.items():
         print(f"  - {doc_id}: {p}")
+
+    print("\n--- Generating Synthetic Scanned Inspection Report & Photo ---")
+    pdf_p, photo_p = generate_scanned_inspection_pdf()
+    print(f"Generated synthetic scanned report: {pdf_p}")
+    print(f"Generated synthetic inspection photo: {photo_p}")
+

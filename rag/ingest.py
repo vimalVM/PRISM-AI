@@ -102,15 +102,31 @@ def compute_embeddings(texts: List[str]) -> List[List[float]]:
 
 # --- File Parsers ---
 
-def parse_pdf(file_path: Path) -> List[Tuple[int, str]]:
-    """Extract text page-by-page from PDF using PyMuPDF (fitz)."""
+def parse_pdf(file_path: Path, min_chars_threshold: int = 50) -> List[Tuple[int, str]]:
+    """Extract text page-by-page from PDF using PyMuPDF (fitz) with OCR fallback for scanned pages."""
     import fitz
+    import io
+    from PIL import Image
 
     doc = fitz.open(str(file_path))
     pages: List[Tuple[int, str]] = []
     for page_idx in range(len(doc)):
         page = doc[page_idx]
-        text = page.get_text("text")
+        text = page.get_text("text").strip()
+
+        # Fallback to OCR if page has minimal/no native text (scanned document)
+        if len(text) < min_chars_threshold:
+            try:
+                from tools.ocr import ocr_image
+                pix = page.get_pixmap(dpi=200)
+                pil_img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+                ocr_text, conf, engine, _ = ocr_image(pil_img)
+                if ocr_text.strip():
+                    text = ocr_text.strip()
+            except Exception as exc:
+                # Log warning and keep any available native text
+                pass
+
         pages.append((page_idx + 1, text))
     doc.close()
     return pages

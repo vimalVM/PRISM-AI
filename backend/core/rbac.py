@@ -62,7 +62,13 @@ def require_role(*allowed_roles: str | Role) -> Callable:
     
     Raises 403 FORBIDDEN and logs access_denied audit event on failure.
     """
-    roles_set = {r.value if hasattr(r, "value") else str(r) for r in allowed_roles}
+    flattened = []
+    for r in allowed_roles:
+        if isinstance(r, (list, tuple, set)):
+            flattened.extend(r)
+        else:
+            flattened.append(r)
+    roles_set = {r.value if hasattr(r, "value") else str(r) for r in flattened}
 
     def _role_checker(user: User = Depends(get_current_user)) -> User:
         if user.role not in roles_set:

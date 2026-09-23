@@ -10,7 +10,7 @@ from typing import Any, Dict
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import auth, audit_api, kb, tasks, users
+from backend.api import auth, audit_api, files, kb, tasks, users
 from backend.core.audit import log_event
 from backend.core.config import get_settings
 from backend.core.db import User, init_db
@@ -77,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(audit_api.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(kb.router, prefix="/api")
+    app.include_router(files.router, prefix="/api")
 
     @app.get("/api/health")
     async def health_check() -> Dict[str, Any]:

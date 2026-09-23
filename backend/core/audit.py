@@ -38,6 +38,8 @@ VALID_EVENT_TYPES = {
     "review_decision",
     "kb_ingested",
     "kb_deleted",
+    "file_uploaded",
+    "file_upload_blocked",
     "user_changed",
     "registry_reloaded",
     "config_check_failed",
