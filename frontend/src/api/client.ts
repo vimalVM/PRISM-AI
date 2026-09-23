@@ -24,6 +24,9 @@ export async function apiRequest<T = any>(
   const url = path.startsWith('/api') ? path : `/api${path}`;
   const headers = new Headers(options.headers || {});
 
+  // Always set X-Requested-With for CSRF protection compatibility
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+
   // Add Content-Type: application/json if sending a body and not FormData
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
