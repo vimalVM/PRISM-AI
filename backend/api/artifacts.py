@@ -9,10 +9,11 @@ and scoped downloads enforcing:
 - Audit logging of download events
 """
 
+from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
@@ -28,6 +29,7 @@ from backend.core.rbac import (
     Role,
     can_access_artifact,
     can_download_artifact,
+    can_review_artifact,
     require_role,
 )
 from backend.core.security import get_current_user
@@ -35,6 +37,7 @@ from backend.core.security import get_current_user
 logger = logging.getLogger("sovereign-workbench.artifacts")
 
 router = APIRouter(prefix="/artifacts", tags=["Artifacts"])
+review_router = APIRouter(prefix="/review", tags=["Review"])
 
 
 class ArtifactDetailResponse(BaseModel):
@@ -249,3 +252,141 @@ async def download_artifact(
         filename=artifact.filename,
         headers={"Content-Disposition": f'attachment; filename="{artifact.filename}"'},
     )
+
+
+class ReviewRequest(BaseModel):
+    """Payload schema for human review decisions."""
+    decision: Literal["approve", "reject", "changes_requested"]
+    comment: str
+
+
+@router.post("/{artifact_id}/review", response_model=ArtifactDetailResponse)
+async def review_artifact(
+    artifact_id: str,
+    payload: ReviewRequest,
+    current_user: User = Depends(require_role(Role.REVIEWER)),
+    db: Session = Depends(get_db),
+) -> ArtifactDetailResponse:
+    """Submit human review decision for an artifact deliverable.
+    
+    SEC-11 Enforcement:
+    - Only 'reviewer' role is authorized.
+    - Authors cannot review or approve their own artifacts (403 Forbidden).
+    - Admins cannot review or approve artifacts (403 Forbidden).
+    """
+    artifact = db.execute(select(Artifact).where(Artifact.id == artifact_id)).scalar_one_or_none()
+    if not artifact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": {"code": "NOT_FOUND", "message": f"Artifact '{artifact_id}' not found"}},
+        )
+
+    # Check segregation of duties
+    can_review, reason = can_review_artifact(current_user, artifact)
+    if not can_review:
+        log_event(
+            event_type="access_denied",
+            status="denied",
+            user_id=current_user.id,
+            role=current_user.role,
+            details={"artifact_id": artifact_id, "reason": reason, "decision_attempted": payload.decision},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"error": {"code": "FORBIDDEN", "message": reason}},
+        )
+
+    # Map decision to database status
+    decision_status_map = {
+        "approve": "APPROVED",
+        "reject": "REJECTED",
+        "changes_requested": "CHANGES_REQUESTED",
+    }
+    new_status = decision_status_map[payload.decision]
+
+    artifact.status = new_status
+    artifact.reviewer_id = current_user.id
+    artifact.reviewed_at = datetime.now(timezone.utc)
+    artifact.review_comment = payload.comment
+
+    db.commit()
+    db.refresh(artifact)
+
+    # Record review_decision in hash-chained audit log
+    log_event(
+        event_type="review_decision",
+        status="ok",
+        user_id=current_user.id,
+        role=current_user.role,
+        details={
+            "artifact_id": artifact.id,
+            "decision": payload.decision,
+            "new_status": new_status,
+            "task_id": artifact.task_id,
+            "comment_length": len(payload.comment),
+        },
+    )
+
+    val_list = None
+    if artifact.validation_json:
+        try:
+            val_list = json.loads(artifact.validation_json)
+        except Exception:
+            val_list = None
+
+    return ArtifactDetailResponse(
+        id=artifact.id,
+        task_id=artifact.task_id,
+        owner_id=artifact.owner_id,
+        kind=artifact.kind,
+        filename=artifact.filename,
+        sha256=artifact.sha256,
+        status=artifact.status,
+        validation_results=val_list,
+        reviewer_id=artifact.reviewer_id,
+        reviewed_at=artifact.reviewed_at.isoformat() if artifact.reviewed_at else None,
+        review_comment=artifact.review_comment,
+        created_at=artifact.created_at.isoformat(),
+    )
+
+
+@review_router.get("/queue", response_model=List[ArtifactDetailResponse])
+async def get_review_queue(
+    current_user: User = Depends(require_role(Role.REVIEWER)),
+    db: Session = Depends(get_db),
+) -> List[ArtifactDetailResponse]:
+    """List artifacts awaiting human review (reviewer role only)."""
+    query = (
+        select(Artifact)
+        .where(Artifact.status == "PENDING_REVIEW")
+        .order_by(desc(Artifact.created_at))
+    )
+    records = db.execute(query).scalars().all()
+
+    results: List[ArtifactDetailResponse] = []
+    for art in records:
+        val_list = None
+        if art.validation_json:
+            try:
+                val_list = json.loads(art.validation_json)
+            except Exception:
+                val_list = None
+
+        results.append(
+            ArtifactDetailResponse(
+                id=art.id,
+                task_id=art.task_id,
+                owner_id=art.owner_id,
+                kind=art.kind,
+                filename=art.filename,
+                sha256=art.sha256,
+                status=art.status,
+                validation_results=val_list,
+                reviewer_id=art.reviewer_id,
+                reviewed_at=art.reviewed_at.isoformat() if art.reviewed_at else None,
+                review_comment=art.review_comment,
+                created_at=art.created_at.isoformat(),
+            )
+        )
+
+    return results

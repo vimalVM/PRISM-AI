@@ -34,6 +34,7 @@
   - Phase 7 (Router & model selection engine `agent/router.py`, deterministic modality & keyword classification, LLM JSON fallback, config-driven model selection matching `models/registry.yaml`, content-free `model_route` audit logging, ModelSwapManager tracking active model and `keep_alive: 0` unloading, contiguous vision plan step clustering, intake node integration, 153/153 tests all passing)
   - Phase 8 (Safe deterministic AST calculator `tools/calculator.py`, hardened Docker sandbox `docker/sandbox/Dockerfile` and `tools/sandbox.py` with `--network=none`, `--cpus=1`, `--memory=512m`, `--pids-limit=128`, `--read-only`, non-root user 10001, wall-clock timeout kill, 64KB output cap, static denylist scanner, code deliverable packaging `agent/coding.py`, bounded correction loop, 179/179 tests all passing)
   - Phase 9 (Templates generator `scripts/make_templates.py` for approval_note.docx, report.docx, and presentation.pptx; document tools `tools/documents.py` for `create_docx`, `create_xlsx`, `create_pptx`, and `create_calculation_report` with SEC-15 formula sanitization; deliverable validation library `agent/nodes/validate.py` with re-open checks, macro rejection, residual placeholder scanning, SEC-23 external relationship/OLE scanning, source reference validation, and calculation verification; artifacts API `backend/api/artifacts.py` with metadata, validation checklist, and scoped downloads enforcing SEC-19 auditor 403 and SEC-20 reviewer 403; 198/198 tests all passing)
+  - Phase 10 (Demo A Inspection Report to Approval Note workflow `agent/inspection.py` end-to-end; OCR document extraction + raster image extraction; multimodal vision analysis with mandatory `limitation` & `observed` tags; SOP-301 RAG retrieval; deterministic AST numerical calculations for general wall thinning loss [1.90 mm], threshold exceedance [0.40 mm non-compliant], and hydrostatic proof pressure [24.75 MPa]; Word deliverable generation `Inspection_Approval_Note.docx` from `templates/approval_note.docx`; deliverable validation; Human Review Gate setting `PENDING_REVIEW` with agent unable to self-approve; Review REST API `POST /api/artifacts/{id}/review` & `GET /api/review/queue` strictly enforcing SEC-11 segregation of duties: author cannot review own artifact [403], admin cannot review artifact [403], only reviewer role can approve/reject; 205/205 tests all passing)
 - **Deviations**: None.
 - **Decisions & Notes**:
   - `qwen3.5:4b` (3.4 GB) and `gemma4:e4b` (9.6 GB) verified on Ollama 0.34.2.
@@ -44,12 +45,14 @@
   - SEC-08 verified: Sandboxed code network access attempt fails in `--network=none`.
   - SEC-09 verified: Sandboxed infinite loop killed at wall-clock timeout (status `timeout`, exit code 124).
   - SEC-10 verified: Sandboxed memory bomb exceeding 512 MB fails safely.
+  - SEC-11 verified: Segregation of duties strictly enforced. The artifact author cannot approve their own artifact (403 Forbidden). Admin cannot approve artifacts (403 Forbidden). Only designated non-author reviewers can approve or reject deliverables.
   - SEC-15 verified: Formula injection attempts (`=HYPERLINK(...)`, `=cmd|...`, `@SUM(...)`, `+1000`) in XLSX are safely escaped with `'` so Excel stores them strictly as text without formula execution.
   - SEC-19 verified: Auditor role is strictly prohibited from downloading deliverable artifacts (403 Forbidden).
   - SEC-20 verified: Reviewer role cannot access or download deliverable artifacts assigned to another reviewer (403 Forbidden).
   - SEC-23 verified: Office packages are scanned for external relationships (`TargetMode="External"`) in `.rels` files and embedded OLE/binary objects, failing validation if detected.
   - Approval Note template & generator enforce separate Facts vs Recommendations sections, mandatory source references on all findings, mandatory limitation notes on visual observations, and a blank human review & sign-off gate.
-  - Phase 9: 198/198 tests pass across entire suite (`test_tools_documents.py` 4/4, `test_validation_library.py` 9/9, `test_api_artifacts.py` 6/6).
-  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 62 scanned files.
+  - Phase 10: 205 tests passing (198 regression tests + 6 review gate tests + 1 end-to-end Demo A test).
+  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 63 scanned files.
+
 
 

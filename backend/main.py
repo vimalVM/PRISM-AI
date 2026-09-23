@@ -79,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(kb.router, prefix="/api")
     app.include_router(files.router, prefix="/api")
     app.include_router(artifacts.router, prefix="/api")
+    app.include_router(artifacts.review_router, prefix="/api")
 
     @app.get("/api/health")
     async def health_check() -> Dict[str, Any]:
