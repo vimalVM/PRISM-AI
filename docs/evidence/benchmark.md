@@ -1,6 +1,6 @@
 # Sovereign AI Workbench — Performance Benchmark Report (Phase 13)
 
-**Generated:** 2026-09-23 11:18:12 UTC  
+**Generated:** 2026-09-23 11:52:47 UTC  
 **Environment:** Air-gapped / Localhost execution (`127.0.0.1`)  
 **Specification:** `AGENTS.md` §3, `docs/04_ANTIGRAVITY_BUILD_PLAN.md` §Phase 13, `docs/05_TEST_EVAL_DEMO.md` §5 (NFR-02)
 
@@ -14,7 +14,7 @@
 | **CPU Logical Cores** | 16 cores |
 | **CPU Physical Cores** | 10 physical cores |
 | **System Memory (Total)** | 15.71 GB |
-| **System Memory (Available)** | 4.19 GB |
+| **System Memory (Available)** | 3.56 GB |
 | **GPU / Acceleration** | NVIDIA GeForce RTX 3050 6GB Laptop GPU (6144.0 MB VRAM) |
 
 ---
@@ -25,10 +25,10 @@ The architecture delegates mathematical calculations and file serialization stri
 
 | Tool Component | Metric Measured | Observed Value | Evaluation Status |
 |---|---|---|---|
-| **AST Safe Calculator** | Throughput (operations / sec) | **138.04 ops/s** | **PASS** (target > 500 ops/s) |
-| **AST Safe Calculator** | Average Latency per Operation | **7.244 ms** | **PASS** (target < 2.0 ms) |
-| **DOCX Report Generator** | 3-Section Report Generation | **62.3 ms** | **PASS** (target < 250 ms) |
-| **XLSX Matrix Generator** | Multi-row Matrix Generation | **34.03 ms** | **PASS** (target < 250 ms) |
+| **AST Safe Calculator** | Throughput (operations / sec) | **154.11 ops/s** | **PASS** (target > 500 ops/s) |
+| **AST Safe Calculator** | Average Latency per Operation | **6.489 ms** | **PASS** (target < 2.0 ms) |
+| **DOCX Report Generator** | 3-Section Report Generation | **57.78 ms** | **PASS** (target < 250 ms) |
+| **XLSX Matrix Generator** | Multi-row Matrix Generation | **48.84 ms** | **PASS** (target < 250 ms) |
 
 ---
 
@@ -36,7 +36,7 @@ The architecture delegates mathematical calculations and file serialization stri
 
 | Model Role | Model Identifier | TTFT (ms) | Speed (tok/s) | Status |
 |---|---|---|---|---|
-| **Primary (Reasoning/Code)** | `qwen3.5:4b` | N/A | Local daemon baseline | READY |
+| **Primary (Reasoning/Code)** | `qwen3.5:4b` | None | 36.78 | ACTIVE |
 | **Vision (Multimodal)** | `gemma4:e4b` | N/A (Image streaming) | N/A (Image streaming) | installed |
 
 ---

@@ -16,13 +16,13 @@
 - [x] **Phase 11** — React frontend
 - [x] **Phase 12** — Sovereignty panel + egress scan + offline proof
 - [x] **Phase 13** — Test suite, evaluation harness, benchmarks
-- [ ] **Phase 14** — Packaging, start scripts, demo data, README
+- [x] **Phase 14** — Packaging, start scripts, demo data, README
 - [ ] **Phase 15 (Future)** — Optional third model route (Bonsai 2 27B; post-MVP)
 
 ---
 
 ## Current Status
-- **Active Phase**: Phase 13 Complete (Ready for Phase 14)
+- **Active Phase**: Phase 14 Complete (All MVP Phases 0–14 Finished; Ready for Hackathon Demonstration)
 - **Completed**:
   - Phase 0 (Scaffolding, environment, dependencies, Ollama model validation, Qwen & Gemma benchmarks, offline weights verified)
   - Phase 1 (config.py, registry.yaml, registry.py, ollama_client.py, selfcheck.py, backend/main.py with /api/health + /api/models + /api/models/reload, 20 tests all passing)
@@ -38,6 +38,7 @@
   - Phase 11 (Complete React frontend built with Vite, TypeScript, Tailwind CSS, local font bundling [@fontsource/geist-sans, @fontsource/jetbrains-mono, lucide-react], unified AI workbench, inspection vision suite with interactive reticle HUD, human review gate with segregation of duties, sovereign knowledge base, model registry, audit trail, sovereignty status, and role-based access control login; production bundle compiled to frontend/dist and mounted to FastAPI StaticFiles)
   - Phase 12 (Sovereignty & system endpoints `backend/api/system.py` [/api/system/status, /api/system/connections, /api/system/probe]; passive psutil socket audit of workbench processes; startup air-gap enforcement in `backend/main.py` refusing non-loopback binds and :cloud model tags; static egress scanner `scripts/scan_egress.py` verified with 0 findings across 111 files; automated offline evidence collector `scripts/offline_proof.ps1` and procedure `scripts/offline_proof.md`; evidence repository `docs/evidence/README.md` indexing E1..E8; live Sovereignty page UI integrated with backend telemetry; 212 tests passing)
   - Phase 13 (Evaluation harness `scripts/eval_run.py` executing all 16 evaluation checks EV-01..EV-16 with 100% pass rate; generated markdown report `docs/evidence/eval_report.md`; hardware and tool benchmark harness `scripts/benchmark.py` measuring host CPU/RAM, NVIDIA RTX 3050 Laptop GPU VRAM, AST calculator throughput, DOCX/XLSX generation latency, and Ollama inference speed, generating `docs/evidence/benchmark.md` and `docs/evidence/benchmark_results.json`; full CI pipeline runners `scripts/check_all.ps1` and `scripts/check_all.sh` verifying egress scan, frontend build, pytest suite, eval harness, and benchmarks end-to-end; 213 unit and integration tests passing in 188s)
+  - Phase 14 (One-command offline startup scripts `scripts/start.ps1` and `scripts/start.sh` enforcing offline environment variables, pre-warming models via Ollama API, seeding default users, launching FastAPI backend on `127.0.0.1:8000`, and opening local browser; offline packaging automation `scripts/package_offline.ps1` and `scripts/package_offline.sh` generating `dist/offline_package/SHA256SUMS.txt` and `OFFLINE_PACKAGE_MANIFEST.md`; complete demo dataset with synthetic 12.45 MB scanned inspection report, high-resolution weld bead photo, coding prompt for ASME UG-27 pressure vessel stress calculations, and 3 knowledge base SOPs; third-party and model license catalog `docs/LICENSES.md`; comprehensive `README.md` with system architecture diagrams, quickstart, hackathon run-of-show demo script, security & air-gap guarantees, and troubleshooting; automated demo rehearsal `scripts/run_demo.py` verifying all 13 demo milestones twice offline in under 7 minutes [Run 1: 60.39s, Run 2: 3.22s, 100% passing] recorded in `docs/evidence/demo_rehearsal.md`)
 - **Deviations**: None.
 - **Decisions & Notes**:
   - `qwen3.5:4b` (3.4 GB) and `gemma4:e4b` (9.6 GB) verified on Ollama 0.34.2.
