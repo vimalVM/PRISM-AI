@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     DATA_DIR: str = "./data"
     DB_PATH: str = "data/db/workbench.db"
     LOG_DIR: str = "./logs"
+    CHROMA_DIR: str = "data/chroma"
     ALLOWED_INPUT_DIRS: str = "data/incoming,data/knowledge_base"
     ALLOWED_OUTPUT_DIRS: str = "data/outputs"
     SECRET_KEY_FILE: str = "data/secrets/session.key"

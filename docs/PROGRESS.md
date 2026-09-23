@@ -6,7 +6,7 @@
 - [x] **Phase 1** — Config, model registry, Ollama client
 - [x] **Phase 2** — Database, auth, RBAC, audit core
 - [x] **Phase 3** — Minimal LangGraph agent + first tool + SSE
-- [ ] **Phase 4** — RAG ingestion + retrieval with access control
+- [x] **Phase 4** — RAG ingestion + retrieval with access control
 - [ ] **Phase 5** — PDF parsing + OCR
 - [ ] **Phase 6** — Vision tool (Gemma 4 E4B)
 - [ ] **Phase 7** — Router + registry-driven model selection
@@ -22,22 +22,25 @@
 ---
 
 ## Current Status
-- **Active Phase**: Phase 3 Complete (Ready for Phase 4)
+- **Active Phase**: Phase 4 Complete (Ready for Phase 5)
 - **Completed**:
   - Phase 0 (Scaffolding, environment, dependencies, Ollama model validation, Qwen & Gemma benchmarks, offline weights verified)
   - Phase 1 (config.py, registry.yaml, registry.py, ollama_client.py, selfcheck.py, backend/main.py with /api/health + /api/models + /api/models/reload, 20 tests all passing)
   - Phase 2 (SQLite DB schema §13, Argon2id auth + HMAC session signing, RBAC + clearance hierarchy §5, segregation of duties SEC-11, safe_path SEC-06, append-only hash chain audit log SEC-14, CSP/CSRF/CORS/rate-limiting middleware SEC-17, user seed script, 91/91 tests passing)
   - Phase 3 (AgentState and sub-models §6.2, @audited_tool registry §7.2, safe read_file and write_file §7.3, prompt delimiters and JSON schemas §6.4, LangGraph StateGraph with bounded retries §6.1, EventBroker and task_events DB persistence §6.6, /api/tasks CRUD and SSE streaming endpoints, static egress scanner scripts/scan_egress.py §3.6, 110/110 tests all passing)
+  - Phase 4 (Document chunking §8.3 with paragraph/heading & table headers, multi-format parsers PDF/DOCX/XLSX/PPTX §8.4, offline CPU SentenceTransformer embeddings, persistent ChromaDB with telemetry OFF, server-side retrieval clearance filter SEC-04, version superseding SEC-05, audited search_knowledge tool §7.3, KB REST APIs §8, synthetic SOP dataset seeder scripts/make_demo_data.py, 118/118 tests all passing)
 - **Deviations**: None.
 - **Decisions & Notes**:
   - `qwen3.5:4b` (3.4 GB) and `gemma4:e4b` (9.6 GB) verified on Ollama 0.34.2.
   - VRAM fit verified on RTX 3050 Laptop GPU (peak ~3.8 GB / 6 GB).
   - Qwen3-Embedding-0.6B offline encoding confirmed with `HF_HUB_OFFLINE=1`.
   - PaddleOCR offline inference confirmed with `run_mode='paddle'`.
-  - Phase 1: 20/20 tests pass (config, registry, ollama client, API endpoints, selfcheck).
-  - Phase 2: 91/91 tests pass across unit and security suites.
-  - Phase 3: 110/110 tests pass across unit, security, graph, and API suites (`test_tools_files.py`, `test_tools_registry.py`, `test_agent_graph.py`, `test_api_tasks.py`, `test_scan_egress.py`).
-  - Zero hardcoded secrets in source code.
-  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings.
+  - Phase 1: 20/20 tests pass.
+  - Phase 2: 91/91 tests pass.
+  - Phase 3: 110/110 tests pass.
+  - Phase 4: 118/118 tests pass across unit, security, and integration suites (`test_rag_chunking.py`, `test_rag_access.py`, `test_tools_rag.py`, `test_api_kb.py`).
+  - Strict server-side clearance filtering verified (SEC-04): INTERNAL user gets 0 chunks from RESTRICTED SOP even on exact keyword queries.
+  - Version superseding verified (SEC-05): updating document version marks old chunks superseded in Chroma and excludes them from retrieval.
+  - Static egress scanner (`scripts/scan_egress.py`) confirmed CLEAN with 0 findings across 50 scanned files.
 
 
