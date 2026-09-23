@@ -6,10 +6,11 @@ records run_started in audit log and emits initial streaming event.
 
 from typing import Any, Dict
 
+from agent.router import classify_request, get_model_swap_manager, route_task
 from agent.state import AgentState
 from backend.core.audit import log_event
 from backend.core.events import get_event_broker
-from models.registry import get_registry, resolve_route
+from models.registry import get_registry
 
 
 def intake_node(state: AgentState) -> Dict[str, Any]:
@@ -20,19 +21,37 @@ def intake_node(state: AgentState) -> Dict[str, Any]:
     user_request = state.get("user_request", "")
     files = state.get("uploaded_files", [])
 
-    # Derive modalities
-    modalities = {f.modality for f in files} if files else set()
+    # Classify request & files deterministically (or with LLM fallback)
+    classification = classify_request(user_request, files=files)
+    task_type = classification.task_type
+    complexity = classification.complexity
+    risk = classification.risk
+    modalities = classification.modalities
+
     facts: Dict[str, Any] = {
         "user_request": user_request,
+        "task_type": task_type,
         "modality": modalities if modalities else "text",
+        "complexity": complexity,
+        "risk": risk,
     }
 
-    # Resolve initial route via registry
+    # Resolve initial route via registry and record audited model_route event
     registry = get_registry()
-    route_plan = resolve_route(facts, registry=registry)
+    route_plan = route_task(
+        facts,
+        registry=registry,
+        run_id=run_id,
+        user_id=user_id,
+        role=user_role,
+    )
 
     selected_model = route_plan.selected_model
     route_reason = route_plan.reason
+
+    # Inform ModelSwapManager of the active primary model
+    swap_mgr = get_model_swap_manager()
+    swap_mgr.set_current_model(selected_model)
 
     # Audit run start
     log_event(
@@ -44,7 +63,9 @@ def intake_node(state: AgentState) -> Dict[str, Any]:
         model=selected_model,
         file_ids=[f.id for f in files] if files else None,
         details={
-            "task_type": state.get("task_type", "general"),
+            "task_type": task_type,
+            "complexity": complexity,
+            "risk": risk,
             "model_route": route_plan.rule_name,
             "route_reason": route_reason,
         },
@@ -71,6 +92,9 @@ def intake_node(state: AgentState) -> Dict[str, Any]:
     )
 
     return {
+        "task_type": task_type,
+        "complexity": complexity,
+        "risk": risk,
         "selected_model": selected_model,
         "route_reason": route_reason,
         "step_count": 0,

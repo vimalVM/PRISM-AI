@@ -191,10 +191,19 @@ def resolve_route(facts: Dict[str, Any], registry: Optional[ModelRegistry] = Non
             if rule.pipeline:
                 selected_models = []
                 primary_model = "unknown"
+                vision_available = True
                 if rule.vision_model:
                     v_entry = registry.models.get(rule.vision_model)
                     if v_entry and v_entry.enabled:
                         selected_models.append(v_entry.model)
+                    else:
+                        # Check vision_failure_fallback
+                        fb_name = registry.routing.vision_failure_fallback
+                        fb_entry = registry.models.get(fb_name) if fb_name else None
+                        if fb_entry and fb_entry.enabled:
+                            selected_models.append(fb_entry.model)
+                        else:
+                            vision_available = False
 
                 if rule.reasoning_model:
                     r_entry = registry.models.get(rule.reasoning_model)
@@ -206,13 +215,21 @@ def resolve_route(facts: Dict[str, Any], registry: Optional[ModelRegistry] = Non
                     default_entry = registry.models.get("default")
                     selected_models = [default_entry.model] if default_entry else ["qwen3.5:4b"]
                     primary_model = selected_models[0]
+                elif primary_model == "unknown":
+                    primary_model = selected_models[0]
+
+                pipeline_stages = [p for p in rule.pipeline if p != "vision" or vision_available]
+                if not vision_available and rule.vision_model:
+                    reason = f"Matched pipeline rule '{rule.name}' (vision model disabled, vision unavailable)"
+                else:
+                    reason = f"Matched pipeline rule '{rule.name}' with stages {rule.pipeline}"
 
                 return RoutePlan(
                     rule_name=rule.name,
                     selected_model=primary_model,
                     models=selected_models,
-                    pipeline=rule.pipeline,
-                    reason=f"Matched pipeline rule '{rule.name}' with stages {rule.pipeline}",
+                    pipeline=pipeline_stages,
+                    reason=reason,
                     valid=True,
                 )
 

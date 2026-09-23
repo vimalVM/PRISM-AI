@@ -110,9 +110,14 @@ def create_app() -> FastAPI:
                 "present_locally": is_present,
             }
 
+        from agent.router import get_model_swap_manager
+        swap_mgr = get_model_swap_manager()
+
         return {
             "ollama_connected": ollama_healthy,
             "ollama_base_url": settings.OLLAMA_BASE_URL,
+            "current_loaded_model": swap_mgr.get_current_model(),
+            "swap_status": swap_mgr.get_status(),
             "models": models_status,
             "embeddings": registry.embeddings.model_dump(),
             "ocr": registry.ocr.model_dump(),

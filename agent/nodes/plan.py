@@ -157,6 +157,12 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
             )
         )
 
+    # Group vision steps contiguously to minimize model swaps (02_DESIGN_DOC §6)
+    from agent.router import ModelSwapManager
+    optimized_steps = ModelSwapManager.group_plan_steps(validated_steps)
+    for i, step in enumerate(optimized_steps):
+        step.step_id = i + 1
+
     # Emit planning event
     broker = get_event_broker()
     broker.emit(
@@ -165,10 +171,10 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         node="plan",
         model=selected_model,
         status="ok",
-        summary=f"Generated plan with {len(validated_steps)} step(s)",
+        summary=f"Generated plan with {len(optimized_steps)} step(s)",
     )
 
     return {
-        "plan": validated_steps,
+        "plan": optimized_steps,
         "errors": errors,
     }
