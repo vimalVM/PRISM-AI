@@ -13,8 +13,6 @@ Two open-weight models are served locally via **Ollama**:
 
 Orchestrated by **LangGraph**, the system pairs small, specialized models with deterministic local tools (ChromaDB RAG, PaddleOCR, Docker sandboxing, and Word/Excel deliverable engines) so that **nothing leaves the premises**.
 
----
-
 ## Architecture Overview
 
 ```mermaid
